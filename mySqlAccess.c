@@ -54,6 +54,18 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 	return true;
 }
 
+bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
+{
+	if (mysql_query(databaseObject, queryString) != 0)
+	{
+		printf("Failed on query!");
+		mysql_close(databaseObject);
+		return false;
+	}
+	// The query was successful!
+	return true;
+}
+
 
 int main()
 {
@@ -109,12 +121,21 @@ int main()
 
 	strcat(customerQuery, customerIdToString);
 
-	if (mysql_query(databaseObject, customerQuery) != 0)
+	//if (mysql_query(databaseObject, customerQuery) != 0)
+	//{
+	//	printf("Failed on query!");
+	//	return EXIT_FAILURE;
+	//	// Close the connection to the DB
+	//	mysql_close(databaseObject);
+	//}
+
+	if (SendQueryToDatabase(databaseObject, customerQuery))
 	{
-		printf("Failed on query!");
-		return EXIT_FAILURE;
-		// Close the connection to the DB
-		mysql_close(databaseObject);
+		printf("Successful query!\n");
+	}
+	else
+	{
+		printf("Query failed! :(\n");
 	}
 
 	MYSQL_RES* customerResult = mysql_store_result(databaseObject);
