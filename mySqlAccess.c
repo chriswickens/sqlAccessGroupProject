@@ -39,6 +39,22 @@ int GetInteger()
 }
 
 
+// Function to connect to the database
+bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase)
+{
+	if (!mysql_real_connect(databaseObject, server, userName, password, defaultDatabase, 0, NULL, 0))
+	{
+		printf("Failed to connect to the DB: Error %s", mysql_error(databaseObject));
+		// Close connection
+		mysql_close(databaseObject);
+		return false;
+	}
+
+	// Connected to database
+	return true;
+}
+
+
 int main()
 {
 
@@ -60,14 +76,22 @@ int main()
 		mysql_close(databaseObject);
 	}
 	// 2) connect the database
-	if (!mysql_real_connect(databaseObject, server, userName, password, defaultDatabase, 0, NULL, 0))
-	{
-		printf("Failed to connect to the DB: Error %s", mysql_error(databaseObject));
-		return EXIT_FAILURE;
-		// Close the connection to the DB
-		mysql_close(databaseObject);
-	}
+	//if (!mysql_real_connect(databaseObject, server, userName, password, defaultDatabase, 0, NULL, 0))
+	//{
+	//	printf("Failed to connect to the DB: Error %s", mysql_error(databaseObject));
+	//	return EXIT_FAILURE;
+	//	// Close the connection to the DB
+	//	mysql_close(databaseObject);
+	//}
 
+	if (ConnectToDatabase(databaseObject,  server, userName, password, defaultDatabase))
+	{
+		printf("Connected!\n");
+	}
+	else
+	{
+		printf("Did not connect! EEP!\n");
+	}
 
 	/*
 	*
