@@ -4,7 +4,7 @@
 
 #pragma warning(disable : 4996)
 
-void GetCustomer()
+bool CreateRentalRecord()
 {
 
 }
@@ -87,7 +87,7 @@ int main()
 		// Close the connection to the DB
 		mysql_close(databaseObject);
 	}
-	// 2) connect the database
+	// 2) connect the database - turned into a function
 	//if (!mysql_real_connect(databaseObject, server, userName, password, defaultDatabase, 0, NULL, 0))
 	//{
 	//	printf("Failed to connect to the DB: Error %s", mysql_error(databaseObject));
@@ -121,6 +121,7 @@ int main()
 
 	strcat(customerQuery, customerIdToString);
 
+	// Send a query - turned into a function
 	//if (mysql_query(databaseObject, customerQuery) != 0)
 	//{
 	//	printf("Failed on query!");
