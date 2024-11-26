@@ -4,42 +4,31 @@
 
 #pragma warning(disable : 4996)
 
+#define MAX_STRING_SIZE 250
 // Function prototypes BECAUSE FUCKING C GOD DAMNIT
 int GetInteger();
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
+bool CheckIfCustomerExists(MYSQL* databaseObject, int customerIdNumber);
 bool CheckIfFilmIsAvailable(MYSQL* databaseObject, int movieIdToCheck);
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
 
-
+void clearCarriageReturn(char buffer[]); // Stealing Seans valor, AGAIN. Because C.
 
 // Gets an integer, DUH.
 int GetInteger()
 {
-	int num;
-	int valid_input;
+	char userInput[MAX_STRING_SIZE] = { "\0" };
+	int inputAsInt = 0;
+	fgets(userInput, MAX_STRING_SIZE, stdin);
 
-	// Loop until a valid integer is entered
-	do
+	while (sscanf(userInput, "%i", &inputAsInt) != 1 || inputAsInt < 0)
 	{
-		printf("Please enter an integer: ");
+		printf("Invalid entry, try again: ");
+		fgets(userInput, MAX_STRING_SIZE, stdin);
+	}
 
-		// Try to read an integer
-		valid_input = scanf("%d", &num);
-
-		// Check if the input was valid
-		if (valid_input != 1)
-		{
-			// Clear the invalid input from the buffer
-			while (getchar() != '\n');
-			printf("Invalid input. Please enter a valid integer.\n");
-		}
-	} while (valid_input != 1);
-
-
-	return num;
-	// Output the valid integer entered
-	//printf("You entered: %d\n", num);
+	return inputAsInt;
 }
 
 
@@ -60,7 +49,7 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 
 bool CheckIfCustomerExists(MYSQL* databaseObject, int customerIdNumber)
 {
-	char newQuery[500]; // Where the query will be stored.
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
 
 	// Create the SQL query string and store it in the 'query' char array
 	sprintf(newQuery,
@@ -82,7 +71,7 @@ bool CheckIfCustomerExists(MYSQL* databaseObject, int customerIdNumber)
 // PART ONE AFTER getting CUSTOMER_ID
 bool CheckIfFilmIsAvailable(MYSQL* databaseObject, int movieIdToCheck)
 {
-	char newQuery[500]; // Where the query will be stored.
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
 
 	// Create the SQL query string and store it in the 'query' char array
 	sprintf(newQuery,
@@ -135,9 +124,21 @@ bool CheckRowResult(MYSQL_RES* resultToCheck)
 	return true;
 }
 
+void clearCarriageReturn(char buffer[])
+{
+	char* whereCR = strchr(buffer, '\n');
+	if (whereCR != NULL)
+	{
+		*whereCR = '\0';
+	}
+}
 
 int main()
 {
+	// BIG NOTE: If SendQueryToDatabase FAILS, it is BAD, time to exit! (most functions will use this!)
+
+
+
 	// Server crap
 	const char* server = "localhost";
 	const char* userName = "root";
@@ -171,36 +172,17 @@ int main()
 	*
 	*/
 	printf("------ Does Customer Exist Testing ------\n\n");
-	//int customerIdToCheck = 600; // The int ID to check
-	//char customerIdToString[20] = { "\0" }; // The string to store the int ID, since C.
 
-	//// Translate the customer_id into a string, because C
-	//sprintf(customerIdToString, "%d", customerIdToCheck);
-	//char customerQuery[500] = "SELECT * FROM customer WHERE customer_id=";
-	//strcat(customerQuery, customerIdToString); // Add the customer ID to the end...BECAUSE C
+	int customerIdToCheck = 11; // The ID to check
 
-	// Send the query to the database and check the BOOL return from the function
-	//if (SendQueryToDatabase(databaseObject, customerQuery))
-	//{
-	//	printf("CUSTOMER_ID : Successful query!\n");
-	//}
-	//else
-	//{
-	//	printf("CUSTOMER_ID : Query failed!(\n");
-	//}
-
-
-	int customerIdToCheck = 600;
 	if (!CheckIfCustomerExists(databaseObject, customerIdToCheck))
 	{
+		// Bad things happened
 		printf("Failed to find customer!\n");
 		return EXIT_FAILURE;
 	}
 	else
 	{
-		printf("Found customer!\n");
-
-
 		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
 
 		// If it failed to get any results for some reason
@@ -242,7 +224,9 @@ int main()
 	printf("\n-------- Movie Available Testing -----------\n");
 
 	// Check the film
-	int filmToCheck = 101; // Note 1001 is NOT available and will return the opposite result!
+	 // Note 1001 is NOT available and will return the opposite result!
+	// It is setup in my database to be a movie that CANNOT be rented
+	int filmToCheck = 1000;
 	CheckIfFilmIsAvailable(databaseObject, filmToCheck);
 
 	MYSQL_RES* checkFilmResult = mysql_store_result(databaseObject);
@@ -256,9 +240,9 @@ int main()
 	}
 
 	// Check the returned rows to see if the query returned anything
-	if (mysql_num_rows(checkFilmResult) == 0)
+	if (!CheckRowResult(checkFilmResult))
 	{
-		printf("\nMOVIE NOT AVAILABLE\n");
+		printf("\nMOVIE #%d NOT AVAILABLE\n", filmToCheck);
 	}
 	// The customer DOES exist, print out information!
 	else
@@ -266,7 +250,7 @@ int main()
 		MYSQL_ROW movieRow;
 		while ((movieRow = mysql_fetch_row(checkFilmResult)) != NULL)
 		{
-			printf("MOVIE ID: Records found: MOVIE info: %s\n", movieRow[0]);
+			printf("MOVIE ID: Records found: MOVIE info: %s\nMOVIE IS AVAILABLE IN INVENTORY FOR RENT\n\n", movieRow[0]);
 		}
 	}
 
@@ -275,72 +259,72 @@ int main()
 	*
 	*
 	*/
-	printf("\n\n\n\n\n");
-	// 3) Setup the query
-	const char* query = "SELECT actor_id, first_name, last_name FROM actor WHERE first_name LIKE \'M%\'";
-	if (mysql_query(databaseObject, query) != 0)
-	{
-		printf("Failed on query!");
-		return EXIT_FAILURE;
-		// Close the connection to the DB
-		mysql_close(databaseObject);
-	}
-
-	MYSQL_RES* resultSet = mysql_store_result(databaseObject);
-
-	if (resultSet == NULL)
-	{
-		printf("failed to get the result set! %s", mysql_error(databaseObject));
-		return EXIT_FAILURE;
-		// Close the connection to the DB
-		mysql_close(databaseObject);
-	}
-
-	MYSQL_ROW row;
-
-	//while ((row = mysql_fetch_row(resultSet)) != NULL)
+	//printf("\n\n\n\n\n");
+	//// 3) Setup the query
+	//const char* query = "SELECT actor_id, first_name, last_name FROM actor WHERE first_name LIKE \'M%\'";
+	//if (mysql_query(databaseObject, query) != 0)
 	//{
-	//	printf("Actor ID: %s, First Name: %s, Last Name: %s\n", row[0], row[1], row[2]);
+	//	printf("Failed on query!");
+	//	return EXIT_FAILURE;
+	//	// Close the connection to the DB
+	//	mysql_close(databaseObject);
+	//}
 
+	//MYSQL_RES* resultSet = mysql_store_result(databaseObject);
+
+	//if (resultSet == NULL)
+	//{
+	//	printf("failed to get the result set! %s", mysql_error(databaseObject));
+	//	return EXIT_FAILURE;
+	//	// Close the connection to the DB
+	//	mysql_close(databaseObject);
+	//}
+
+	//MYSQL_ROW row;
+
+	////while ((row = mysql_fetch_row(resultSet)) != NULL)
+	////{
+	////	printf("Actor ID: %s, First Name: %s, Last Name: %s\n", row[0], row[1], row[2]);
+
+	////}
+
+
+	//// Free the result set, done with it!
+	//mysql_free_result(resultSet);
+
+	//// Update existing record
+	//const char* getActorWithActorId1 = "SELECT * FROM actor WHERE actor_id = 1";
+
+	//if (mysql_query(databaseObject, getActorWithActorId1) != 0)
+
+	//{
+	//	printf("Failed to get actor with value of 1 in actor_id!\n");
+	//	return EXIT_FAILURE;
+	//	// Close the connection to the DB
+	//	mysql_close(databaseObject);
+	//}
+
+	//// Store the result from the response
+	//MYSQL_RES* resultForActorIdOfOne = mysql_store_result(databaseObject);
+	//int numberOfRows = mysql_num_rows(resultForActorIdOfOne);
+	//// if zero, didnt find the actor!
+	//if (numberOfRows == 0)
+	//{
+	//	printf("No actord with actor_id of 1!");
+	//	return EXIT_FAILURE;
+	//	// Close the connection to the DB
+	//	mysql_close(databaseObject);
+	//}
+	//if (numberOfRows == 1)
+	//{
+	//	MYSQL_ROW rowForActorIdOne = mysql_fetch_row(resultForActorIdOfOne);
+	//	printf("Actor ID: %s, First Name: %s, Last Name: %s\n", rowForActorIdOne[0], rowForActorIdOne[1], rowForActorIdOne[2]);
 	//}
 
 
-	// Free the result set, done with it!
-	mysql_free_result(resultSet);
+	//const char* updateActor = "UPDATE actor SET first_name = 'John' WHERE actor_id = 1";
 
-	// Update existing record
-	const char* getActorWithActorId1 = "SELECT * FROM actor WHERE actor_id = 1";
-
-	if (mysql_query(databaseObject, getActorWithActorId1) != 0)
-
-	{
-		printf("Failed to get actor with value of 1 in actor_id!\n");
-		return EXIT_FAILURE;
-		// Close the connection to the DB
-		mysql_close(databaseObject);
-	}
-
-	// Store the result from the response
-	MYSQL_RES* resultForActorIdOfOne = mysql_store_result(databaseObject);
-	int numberOfRows = mysql_num_rows(resultForActorIdOfOne);
-	// if zero, didnt find the actor!
-	if (numberOfRows == 0)
-	{
-		printf("No actord with actor_id of 1!");
-		return EXIT_FAILURE;
-		// Close the connection to the DB
-		mysql_close(databaseObject);
-	}
-	if (numberOfRows == 1)
-	{
-		MYSQL_ROW rowForActorIdOne = mysql_fetch_row(resultForActorIdOfOne);
-		printf("Actor ID: %s, First Name: %s, Last Name: %s\n", rowForActorIdOne[0], rowForActorIdOne[1], rowForActorIdOne[2]);
-	}
-
-
-	const char* updateActor = "UPDATE actor SET first_name = 'John' WHERE actor_id = 1";
-
-	// Close the connection to the DB
+	//// Close the connection to the DB
 	mysql_close(databaseObject);
 
 	return EXIT_SUCCESS;
