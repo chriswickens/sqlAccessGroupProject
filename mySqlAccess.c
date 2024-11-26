@@ -4,9 +4,42 @@
 
 #pragma warning(disable : 4996)
 
-bool CreateRentalRecord()
-{
+bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
+int GetInteger();
 
+
+bool CheckIfFilmIsAvailable(MYSQL* databaseObject, int movieIdToCheck);
+bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
+bool CheckRowResult(MYSQL_RES* resultToCheck);
+
+// RETURNS true/false based on return of SENDQUERYTODB
+bool CheckIfFilmIsAvailable(MYSQL* databaseObject, int movieIdToCheck)
+{
+	//int filmId = 11; // Replace with your film ID
+	char newQuery[500]; // Adjust the size of the array as needed
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery,
+		"SELECT f.title, COUNT(i.inventory_id) AS available_inventory\n"
+		"FROM film f\n"
+		"JOIN inventory i ON f.film_id = i.film_id\n"
+		"LEFT JOIN rental r ON i.inventory_id = r.inventory_id AND r.return_date IS NULL\n"
+		"WHERE f.film_id = %d  -- Where the FILM ID goes USING %d from the ABOVE insert to simulate NOT RENTALBLE\n"
+		"GROUP BY f.film_id, f.title\n"
+		"HAVING COUNT(i.inventory_id) > COUNT(r.inventory_id);",
+		movieIdToCheck, movieIdToCheck);
+
+	//printf("SENDING THIS: %s", newQuery);
+
+	if (SendQueryToDatabase(databaseObject, newQuery))
+	{
+		return true;
+	}
+
+	else
+	{
+		return false;
+	}
 }
 
 
@@ -66,6 +99,18 @@ bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 	return true;
 }
 
+bool CheckRowResult(MYSQL_RES* resultToCheck)
+{
+	if (mysql_num_rows(resultToCheck) == 0)
+	{
+		// No rows were found in the result
+		return false;
+	}
+	// 1 or more was found
+	return true;
+
+}
+
 
 int main()
 {
@@ -89,7 +134,7 @@ int main()
 	}
 
 	// 2) connect the database - turned into a function
-	if (ConnectToDatabase(databaseObject,  server, userName, password, defaultDatabase))
+	if (ConnectToDatabase(databaseObject, server, userName, password, defaultDatabase))
 	{
 		printf("Connected!\n");
 	}
@@ -98,29 +143,29 @@ int main()
 		printf("Did not connect! EEP!\n");
 	}
 
+
 	/*
 	*
 	* TRY TO GET CUSTOMER
 	*
 	*/
+	printf("------ Does Customer Exist Testing ------\n\n");
 	int customerIdToCheck = 600; // The int ID to check
 	char customerIdToString[20] = { "\0" }; // The string to store the int ID, since C.
 
 	// Translate the customer_id into a string, because C
 	sprintf(customerIdToString, "%d", customerIdToCheck);
-
 	char customerQuery[500] = "SELECT * FROM customer WHERE customer_id=";
-
 	strcat(customerQuery, customerIdToString); // Add the customer ID to the end...BECAUSE C
 
 	// Send the query to the database and check the BOOL return from the function
 	if (SendQueryToDatabase(databaseObject, customerQuery))
 	{
-		printf("Successful query!\n");
+		printf("CUSTOMER_ID : Successful query!\n");
 	}
 	else
 	{
-		printf("Query failed!(\n");
+		printf("CUSTOMER_ID : Query failed!(\n");
 	}
 
 	MYSQL_RES* customerResult = mysql_store_result(databaseObject);
@@ -134,22 +179,79 @@ int main()
 
 	// Check if the result set is empty (customer does not exist)
 	// Check the mysql_num_rows to see if any rows were returned.
-	if (mysql_num_rows(customerResult) == 0)
+	if (!CheckRowResult(customerResult))
 	{
 		printf("Customer with ID %d does not exist.\n", customerIdToCheck);
 	}
-	// The customer DOES exist, print out information!
 	else
 	{
 		MYSQL_ROW customerRow;
 		while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
 		{
-			printf("Records found: Customer Name: %s %s\n", customerRow[2], customerRow[3]);
+			printf("CUSTOMER ID: Records found: Customer Name: %s %s\n", customerRow[2], customerRow[3]);
 		}
 	}
+
+
+	// ORIGINAL CODE FOR VERIFYING THE ROWS, BEFORE FUNCTION WAS MADE
+	//if (mysql_num_rows(customerResult) == 0)
+	//{
+	//	printf("Customer with ID %d does not exist.\n", customerIdToCheck);
+	//}
+	//// The customer DOES exist, print out information!
+	//else
+	//{
+	//	MYSQL_ROW customerRow;
+	//	while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
+	//	{
+	//		printf("CUSTOMER ID: Records found: Customer Name: %s %s\n", customerRow[2], customerRow[3]);
+	//	}
+	//}
+
+
 	// Free the result set, done with it!
 	mysql_free_result(customerResult);
 
+
+	printf("\n-------- Movie Available Testing -----------\n");
+
+	// END OF CUSTOMER CHECKING
+
+
+	/*
+	*
+	* BEGIN CHECKING MOVIE AVAILABILITY
+	*
+	*
+	*/
+
+	// Check the film
+	int filmToCheck = 101; // Note 1001 is NOT available and will return the opposite result!
+	CheckIfFilmIsAvailable(databaseObject, filmToCheck);
+
+	MYSQL_RES* checkFilmResult = mysql_store_result(databaseObject);
+
+	// If it failed to get any results for some reason
+	if (checkFilmResult == NULL)
+	{
+		printf("Failed to get the result set! %s", mysql_error(databaseObject));
+		return EXIT_FAILURE;
+	}
+
+	// Check the returned rows to see if the query returned anything
+	if (mysql_num_rows(checkFilmResult) == 0)
+	{
+		printf("\nMOVIE NOT AVAILABLE\n");
+	}
+	// The customer DOES exist, print out information!
+	else
+	{
+		MYSQL_ROW movieRow;
+		while ((movieRow = mysql_fetch_row(checkFilmResult)) != NULL)
+		{
+			printf("MOVIE ID: Records found: MOVIE info: %s\n", movieRow[0]);
+		}
+	}
 
 
 	/*
