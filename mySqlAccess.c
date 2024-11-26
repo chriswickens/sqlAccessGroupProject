@@ -80,7 +80,8 @@ int main()
 	// Translate the customer_id into a string:
 	sprintf(customerIdToString, "%d", customerIdToCheck);
 
-	char* customerQuery = "SELECT * FROM customer WHERE customer_id=";
+	// char* customerQuery = "SELECT * FROM customer WHERE customer_id="; // ORIGINAL LINE, uneditable obviously
+	char customerQuery[500] = "SELECT * FROM customer WHERE customer_id=";
 
 	strcat(customerQuery, customerIdToString);
 
