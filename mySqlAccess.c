@@ -87,15 +87,8 @@ int main()
 		// Close the connection to the DB
 		mysql_close(databaseObject);
 	}
-	// 2) connect the database - turned into a function
-	//if (!mysql_real_connect(databaseObject, server, userName, password, defaultDatabase, 0, NULL, 0))
-	//{
-	//	printf("Failed to connect to the DB: Error %s", mysql_error(databaseObject));
-	//	return EXIT_FAILURE;
-	//	// Close the connection to the DB
-	//	mysql_close(databaseObject);
-	//}
 
+	// 2) connect the database - turned into a function
 	if (ConnectToDatabase(databaseObject,  server, userName, password, defaultDatabase))
 	{
 		printf("Connected!\n");
@@ -110,79 +103,60 @@ int main()
 	* TRY TO GET CUSTOMER
 	*
 	*/
-	int customerIdToCheck = 600;
-	char customerIdToString[20] = { "\0" };
+	int customerIdToCheck = 600; // The int ID to check
+	char customerIdToString[20] = { "\0" }; // The string to store the int ID, since C.
 
-	// Translate the customer_id into a string:
+	// Translate the customer_id into a string, because C
 	sprintf(customerIdToString, "%d", customerIdToCheck);
 
-	// char* customerQuery = "SELECT * FROM customer WHERE customer_id="; // ORIGINAL LINE, uneditable obviously
 	char customerQuery[500] = "SELECT * FROM customer WHERE customer_id=";
 
-	strcat(customerQuery, customerIdToString);
+	strcat(customerQuery, customerIdToString); // Add the customer ID to the end...BECAUSE C
 
-	// Send a query - turned into a function
-	//if (mysql_query(databaseObject, customerQuery) != 0)
-	//{
-	//	printf("Failed on query!");
-	//	return EXIT_FAILURE;
-	//	// Close the connection to the DB
-	//	mysql_close(databaseObject);
-	//}
-
+	// Send the query to the database and check the BOOL return from the function
 	if (SendQueryToDatabase(databaseObject, customerQuery))
 	{
 		printf("Successful query!\n");
 	}
 	else
 	{
-		printf("Query failed! :(\n");
+		printf("Query failed!(\n");
 	}
 
 	MYSQL_RES* customerResult = mysql_store_result(databaseObject);
 
+	// If it failed to get any results for some reason
 	if (customerResult == NULL)
 	{
-		printf("failed to get the result set! %s", mysql_error(databaseObject));
+		printf("Failed to get the result set! %s", mysql_error(databaseObject));
 		return EXIT_FAILURE;
-		// Close the connection to the DB
-		mysql_close(databaseObject);
 	}
 
-	MYSQL_ROW customerRow;
-	while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
+	// Check if the result set is empty (customer does not exist)
+	// Check the mysql_num_rows to see if any rows were returned.
+	if (mysql_num_rows(customerResult) == 0)
 	{
-		printf("Records found: Customer Name: %s %s\n", customerRow[2], customerRow[3]);
+		printf("Customer with ID %d does not exist.\n", customerIdToCheck);
 	}
-
-	//bool foundCustomer = false;
-	//while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
-	//{
-	//	// ID, store, first name, last name, email address, address, active, create date, last update
-	//	//printf("Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
-	//	char custToFind[] = "600";
-	//	if (strcmp(customerRow[0], custToFind) == 0)
-	//	{
-	//		printf("Found customer #%s: Customer name: %s %s\n", custToFind, customerRow[2], customerRow[3]);
-	//		foundCustomer = true;
-	//	}
-	//}
-	//if (!foundCustomer)
-	//{
-	//	printf("No customer with that ID found!!");
-	//}
-
+	// The customer DOES exist, print out information!
+	else
+	{
+		MYSQL_ROW customerRow;
+		while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
+		{
+			printf("Records found: Customer Name: %s %s\n", customerRow[2], customerRow[3]);
+		}
+	}
 	// Free the result set, done with it!
 	mysql_free_result(customerResult);
-	//
-	//
-	//
+
 
 
 	/*
 	*
 	*
 	*/
+	printf("\n\n\n\n\n");
 	// 3) Setup the query
 	const char* query = "SELECT actor_id, first_name, last_name FROM actor WHERE first_name LIKE \'M%\'";
 	if (mysql_query(databaseObject, query) != 0)
