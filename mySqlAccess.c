@@ -133,6 +133,50 @@ void clearCarriageReturn(char buffer[])
 	}
 }
 
+
+void MenuPlaceHolder()
+{
+	int exitProgram = 0;
+
+	while (!exitProgram)
+	{
+		printf("Welcome to my shitty database program written in C...for reasons!!!\n\n");
+		printf("Please enter a menu selection: \n");
+		printf("\t1) Create new rental record...\n");
+		printf("\t2) Update customer details...\n");
+		printf("\t3) Read customer rental history...\n");
+		printf("\t4) Delete customer records...\n");
+
+		int menuItem = GetIntFromUser();
+
+		switch (menuItem)
+		{
+		case 1:
+			printf("Selected item #%d\n", menuItem);
+			break;
+
+		case 2:
+			printf("Selected item #%d\n", menuItem);
+			break;
+
+		case 3:
+			printf("Selected item #%d\n", menuItem);
+			break;
+
+		case 4:
+			printf("Selected item #%d\n", menuItem);
+			break;
+
+		case 5:
+			printf("Selected item #%d\n", menuItem);
+			exitProgram = 1;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
 int main()
 {
 	// BIG NOTE: If SendQueryToDatabase FAILS, it is BAD, time to exit! (most functions will use this!)
