@@ -4,7 +4,7 @@
 
 #pragma warning(disable : 4996)
 
-#define MAX_STRING_SIZE 250
+#define MAX_STRING_SIZE 500
 // Function prototypes BECAUSE FUCKING C GOD DAMNIT
 int GetInteger();
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
@@ -97,6 +97,34 @@ bool CheckIfFilmIsAvailable(MYSQL* databaseObject, int movieIdToCheck)
 }
 
 
+bool CheckForOutstandingRentals(MYSQL* databaseObject, int customer_id)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Format the SQL query string and store it in the 'newQuery' array
+	sprintf(newQuery,
+		"SELECT r.rental_id, r.rental_date, r.return_date, f.title, c.first_name, c.last_name\n"
+		"FROM rental r\n"
+		"JOIN customer c ON r.customer_id = c.customer_id\n"
+		"JOIN inventory i ON r.inventory_id = i.inventory_id\n"
+		"JOIN film f ON i.film_id = f.film_id\n"
+		"WHERE r.customer_id = %d  -- Use 33 for testing, as above you added them to the database with an outstanding rental, two in fact.\n"
+		"AND r.return_date IS NULL;",
+		customer_id); // Pass the customer ID (33) for testing
+
+
+	//printf("SENDING THIS: %s", newQuery);
+
+	// Send the query
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
 
 
 // Sends a query, and lets you know if it failed for some reason
@@ -136,6 +164,17 @@ void clearCarriageReturn(char buffer[])
 
 void MenuPlaceHolder()
 {
+
+	/*
+	* 
+	* 
+	* YOU FORGOT ABOUT SSCANF, YOU CAN USE IT TO FORMAT EXPECTED STRING INPUT
+	* 2025-22-10 for example
+	* or chris@home.com
+	* Dumbass....
+	* 
+	* 
+	*/
 	int exitProgram = 0;
 
 	while (!exitProgram)
@@ -147,24 +186,67 @@ void MenuPlaceHolder()
 		printf("\t3) Read customer rental history...\n");
 		printf("\t4) Delete customer records...\n");
 
-		int menuItem = GetIntFromUser();
+		int menuItem = 10;
 
 		switch (menuItem)
 		{
 		case 1:
-			printf("Selected item #%d\n", menuItem);
+			/*
+			* Create function to call for this:
+			* 
+			* Add new rental transaction:
+			* Function call to add new transaction:
+			* Get the following from the user:
+			* int customer_id - GetInteger()
+			* int inventory_id - GetInteger()
+			* int staff_id - GetInteger()
+			* 
+			* THEN
+			* CheckIfFilmIsAvailable(databaseObject, inventory_id)
+			* if movie is available:
+			*	InsertRentalTransaction()
+			* if not available:
+			*	Ask user if they want to be on a waitlist (not coding this crap)
+			* 
+			*/
+			printf("Add new rental transaction - Selected item #%d\n", menuItem);
 			break;
 
 		case 2:
-			printf("Selected item #%d\n", menuItem);
+			/*
+			* Get the following:
+			* int customer_id
+			* CheckIfCustomerExists(databaseObject, customer_id)
+			* If they do exist, you can update:
+			* char first_name
+			* char last_name
+			* char email
+			* int address_id - GetInteger()
+			*/
+			printf("Update Customer Information - Selected item #%d\n", menuItem);
 			break;
 
 		case 3:
-			printf("Selected item #%d\n", menuItem);
+			/*
+			* View rental history for customer using date range
+			* customer_id,
+			* start_date (sscanf 2022-10-01)
+			* end_date (sscanf too)
+			*/
+			printf("Complex Query - Viewing Rental History with Filters - Selected item #%d\n", menuItem);
 			break;
 
 		case 4:
-			printf("Selected item #%d\n", menuItem);
+			/*
+			* 
+			* DELETE RENTAL RECORDS for a customer
+			* get
+			* customer_id
+			* 
+			* check they have returned all their rentals, if not, do not delete them
+			* 
+			*/
+			printf("Deleting a Customer Record - Selected item #%d\n", menuItem);
 			break;
 
 		case 5:
@@ -180,8 +262,6 @@ void MenuPlaceHolder()
 int main()
 {
 	// BIG NOTE: If SendQueryToDatabase FAILS, it is BAD, time to exit! (most functions will use this!)
-
-
 
 	// Server crap
 	const char* server = "localhost";
@@ -217,7 +297,8 @@ int main()
 	*/
 	printf("------ Does Customer Exist Testing ------\n\n");
 
-	int customerIdToCheck = 11; // The ID to check
+	
+	int customerIdToCheck = 66; // The ID to check
 
 	if (!CheckIfCustomerExists(databaseObject, customerIdToCheck))
 	{
@@ -296,6 +377,50 @@ int main()
 		{
 			printf("MOVIE ID: Records found: MOVIE info: %s\nMOVIE IS AVAILABLE IN INVENTORY FOR RENT\n\n", movieRow[0]);
 		}
+		mysql_free_result(checkFilmResult);
+	}
+
+
+
+
+
+
+	printf("\n-------- Outstanding RENTALS Testing -----------\n");
+	/*
+	
+	CHECK IF SOMEONE HAS OUTSTANDING RENTALS!
+	
+	
+	*/
+	// has returns: 11, 33, 66
+	// does not, 1
+	int customerIdToCheckForOutstandRentals = 1;
+	CheckForOutstandingRentals(databaseObject, customerIdToCheckForOutstandRentals);
+	MYSQL_RES* checkOutstandingRentals = mysql_store_result(databaseObject);
+	//MYSQL_RES* checkFilmResult = mysql_store_result(databaseObject);
+
+	// If it failed to get any results for some reason
+	if (checkOutstandingRentals == NULL)
+	{
+		// Print the SQL error
+		printf("Failed to get the result set! %s", mysql_error(databaseObject));
+		return EXIT_FAILURE;
+	}
+
+	// Check the returned rows to see if the query returned anything
+	if (!CheckRowResult(checkOutstandingRentals))
+	{
+		printf("\nCustomer has NO outstanding rentals!\n");
+	}
+	// The customer DOES exist, print out information!
+	else
+	{
+		MYSQL_ROW outstandingRentalData;
+		while ((outstandingRentalData = mysql_fetch_row(checkOutstandingRentals)) != NULL)
+		{
+			printf("OUTSTANDING RENTAL: MOVIE info:\n\tID: %s\n\ttitle: %s\n\tRental Date: %s\n\tReturn date: %s \n\n", outstandingRentalData[0], outstandingRentalData[3], outstandingRentalData[1], outstandingRentalData[2]);
+		}
+		mysql_free_result(checkOutstandingRentals);
 	}
 
 
