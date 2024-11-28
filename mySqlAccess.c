@@ -6,17 +6,17 @@
 
 #define MAX_STRING_SIZE 500
 // Function prototypes BECAUSE FUCKING C GOD DAMNIT
-int GetInteger();
+int GetIntegerFromUser();
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
-bool CheckIfCustomerExists(MYSQL* databaseObject, int customerIdNumber);
-bool CheckIfFilmIsAvailable(MYSQL* databaseObject, int movieIdToCheck);
+bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber);
+bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
 
 void clearCarriageReturn(char buffer[]); // Stealing Seans valor, AGAIN. Because C.
 
 // Gets an integer, DUH.
-int GetInteger()
+int GetIntegerFromUser()
 {
 	char userInput[MAX_STRING_SIZE] = { "\0" };
 	int inputAsInt = 0;
@@ -47,7 +47,7 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 	return true;
 }
 
-bool CheckIfCustomerExists(MYSQL* databaseObject, int customerIdNumber)
+bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
 
@@ -66,10 +66,30 @@ bool CheckIfCustomerExists(MYSQL* databaseObject, int customerIdNumber)
 	return true;
 }
 
+// Check if the staff exists
+bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery,
+		"SELECT * FROM staff\n"
+		"WHERE staff_id = %d; \n"
+		, staffIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
 
 // RETURNS true/false based on return of SENDQUERYTODB
 // PART ONE AFTER getting CUSTOMER_ID
-bool CheckIfFilmIsAvailable(MYSQL* databaseObject, int movieIdToCheck)
+bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
 
@@ -79,10 +99,10 @@ bool CheckIfFilmIsAvailable(MYSQL* databaseObject, int movieIdToCheck)
 		"FROM film f\n"
 		"JOIN inventory i ON f.film_id = i.film_id\n"
 		"LEFT JOIN rental r ON i.inventory_id = r.inventory_id AND r.return_date IS NULL\n"
-		"WHERE f.film_id = %d  -- Where the FILM ID goes USING %d from the ABOVE insert to simulate NOT RENTALBLE\n"
+		"WHERE f.film_id = %d  -- Where the FILM ID GOES\n"
 		"GROUP BY f.film_id, f.title\n"
 		"HAVING COUNT(i.inventory_id) > COUNT(r.inventory_id);",
-		movieIdToCheck, movieIdToCheck); // Pass the values in to use them in sprintf
+		movieIdToCheck); // Pass the values in to use them in sprintf
 
 	//printf("SENDING THIS: %s", newQuery);
 
@@ -96,8 +116,16 @@ bool CheckIfFilmIsAvailable(MYSQL* databaseObject, int movieIdToCheck)
 	return true;
 }
 
-
-bool CheckForOutstandingRentals(MYSQL* databaseObject, int customer_id)
+// Generates and sends query to see if a customer has an outstanding rental
+// returns true/false
+/*
+* 
+* 
+* USED FOR THE DELETION OPTION, TO SEE IF THE CUSTOMER HAS AN OUTSTANDING RENTAL, WE CANT DELETE THEM!
+* 
+* 
+*/
+bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
 
@@ -113,8 +141,6 @@ bool CheckForOutstandingRentals(MYSQL* databaseObject, int customer_id)
 		customer_id); // Pass the customer ID (33) for testing
 
 
-	//printf("SENDING THIS: %s", newQuery);
-
 	// Send the query
 	if (!SendQueryToDatabase(databaseObject, newQuery))
 	{
@@ -128,6 +154,7 @@ bool CheckForOutstandingRentals(MYSQL* databaseObject, int customer_id)
 
 
 // Sends a query, and lets you know if it failed for some reason
+// returns true or false
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 {
 	if (mysql_query(databaseObject, queryString) != 0)
@@ -140,7 +167,8 @@ bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 	return true;
 }
 
-// Checks how many rows were returns in the MYSQL_RES (result)
+// Checks to see if any rows were returned from a MYSQL_RESULT
+// returns true if there was at least 1  row returned
 bool CheckRowResult(MYSQL_RES* resultToCheck)
 {
 	if (mysql_num_rows(resultToCheck) == 0)
@@ -152,6 +180,21 @@ bool CheckRowResult(MYSQL_RES* resultToCheck)
 	return true;
 }
 
+void PromptForYesOrNo()
+{
+	char input;
+
+	printf("Type Y or N: ");
+	input = getchar();
+
+	// Clear any extra characters from the input buffer
+	while (getchar() != '\n');
+
+	// The function does nothing with the input and returns nothing
+}
+
+
+// Remove carriage return for when the user is entering a string
 void clearCarriageReturn(char buffer[])
 {
 	char* whereCR = strchr(buffer, '\n');
@@ -162,18 +205,168 @@ void clearCarriageReturn(char buffer[])
 }
 
 
-void MenuPlaceHolder()
+bool AddNewRental(MYSQL* databaseObject)
 {
+	// Start: Get customer_id to add a new rental for
+	printf("Please enter the customer_id:");
+	int customerIdToCheck = GetIntegerFromUser(); // The ID to check
+	printf("Please enter the movie inventory_id:");
+	int inventoryIdToCheck = GetIntegerFromUser(); // Get the inventory_id for the movie
+	printf("Please enter the staff_id:");
+	int staffIdToCheck = GetIntegerFromUser();
+
+	/*
+	*
+	* CHECK CUSTOMER_ID
+	*
+	*/
+	if (!CustomerExistsQuery(databaseObject, customerIdToCheck))
+	{
+		// The query was NOT valid!
+		printf("Failed to find customer in the database!\n");
+		return false;
+	}
+	// The query was valid
+	else
+	{
+		// Store the result from the query
+		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
+
+		// If the result is null, there was no result
+		if (customerResult == NULL)
+		{
+			// Print the SQL error
+			printf("Failed to get the result set! %s", mysql_error(databaseObject));
+			return false;
+		}
+
+		// If the result was NO rows, the customer didnt exist
+		if (!CheckRowResult(customerResult))
+		{
+			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
+		}
+		// The result has at LEAST ONE row, the customer DOES exist!
+		else
+		{
+			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
+			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
+			{
+				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
+			}
+		}
+
+		// Free the result for the customer so memory isnt still consumed by it
+		mysql_free_result(customerResult);
+	}
+	// End of customer_id check
+
+
+	/*
+	*
+	* CHECK FILM INVENTORY
+	*
+	*/
+	if (!IsFilmAvailableQuery(databaseObject, inventoryIdToCheck))
+	{
+		printf("Failed to find the film in the database!\n");
+		return false;
+	}
+
+	MYSQL_RES* checkInventoryResult = mysql_store_result(databaseObject);
+
+	if (checkInventoryResult == NULL)
+	{
+		printf("Failed to get the result set! %s", mysql_error(databaseObject));
+		return false;
+	}
+
+	if (!CheckRowResult(checkInventoryResult))
+	{
+		printf("\nMOVIE #%d NOT AVAILABLE\n", inventoryIdToCheck);
+	}
+	else
+	{
+		MYSQL_ROW inventoryRow;
+		while ((inventoryRow = mysql_fetch_row(checkInventoryResult)) != NULL)
+		{
+			printf("MOVIE ID: Records found: MOVIE info: %s\nMOVIE IS AVAILABLE IN INVENTORY FOR RENT\n\n", inventoryRow[0]);
+		}
+		mysql_free_result(checkInventoryResult);
+	}
+
 
 	/*
 	* 
+	* CHECK STAFF_ID
 	* 
+	*/
+	if (!StaffIdExistsQuery(databaseObject, staffIdToCheck))
+	{
+		// Bad things happened
+		printf("Failed to find staff_id!\n");
+		return false;
+	}
+
+	MYSQL_RES* checkStaffResult = mysql_store_result(databaseObject);
+
+	// If it failed to get any results for some reason
+	if (checkStaffResult == NULL)
+	{
+		// Print the SQL error
+		printf("Failed to find the staff ID %s", mysql_error(databaseObject));
+		return false;
+	}
+
+	// Check the returned rows to see if the query returned anything
+	if (!CheckRowResult(checkStaffResult))
+	{
+		printf("\nERROR: Staff NOT FOUND %d\n", staffIdToCheck);
+		return false;
+	}
+	// The customer DOES exist, print out information!
+	else
+	{
+		MYSQL_ROW staffRow;
+		while ((staffRow = mysql_fetch_row(checkStaffResult)) != NULL)
+		{
+			printf("Staff ID FOUND: Name: %s %s\n\n", staffRow[1], staffRow[2]);
+		}
+		mysql_free_result(checkStaffResult);
+	}
+	// END of STAFF_ID CHECKS
+
+	// If it gets to this point, time to add the rental
+	char addRentalQuery[MAX_STRING_SIZE];
+	sprintf(addRentalQuery,
+		"INSERT INTO rental (rental_date, inventory_id, customer_id, return_date, staff_id) "
+		"VALUES (NOW(), %d, %d, NULL, %d);",
+		inventoryIdToCheck, customerIdToCheck, staffIdToCheck);
+
+	if (!SendQueryToDatabase(databaseObject, addRentalQuery))
+	{
+		printf("Failed to add new rental entry!");
+		return false;
+	}
+
+	printf("Rental entry successful!");
+	return true;
+}
+
+
+
+
+void MenuPlaceHolder()
+{
+	/*
+	*
+	*
 	* YOU FORGOT ABOUT SSCANF, YOU CAN USE IT TO FORMAT EXPECTED STRING INPUT
 	* 2025-22-10 for example
 	* or chris@home.com
 	* Dumbass....
-	* 
-	* 
+	*
+	*
 	*/
 	int exitProgram = 0;
 
@@ -193,21 +386,27 @@ void MenuPlaceHolder()
 		case 1:
 			/*
 			* Create function to call for this:
-			* 
+			*
 			* Add new rental transaction:
 			* Function call to add new transaction:
 			* Get the following from the user:
 			* int customer_id - GetInteger()
 			* int inventory_id - GetInteger()
 			* int staff_id - GetInteger()
-			* 
+			*
+			* Function for this will:
+			* Get information (function)
+			* Pass information to function to CREATE.
+			*
+			*
+			*
 			* THEN
 			* CheckIfFilmIsAvailable(databaseObject, inventory_id)
 			* if movie is available:
 			*	InsertRentalTransaction()
 			* if not available:
 			*	Ask user if they want to be on a waitlist (not coding this crap)
-			* 
+			*
 			*/
 			printf("Add new rental transaction - Selected item #%d\n", menuItem);
 			break;
@@ -238,13 +437,13 @@ void MenuPlaceHolder()
 
 		case 4:
 			/*
-			* 
+			*
 			* DELETE RENTAL RECORDS for a customer
 			* get
 			* customer_id
-			* 
+			*
 			* check they have returned all their rentals, if not, do not delete them
-			* 
+			*
 			*/
 			printf("Deleting a Customer Record - Selected item #%d\n", menuItem);
 			break;
@@ -276,6 +475,14 @@ int main()
 		printf("Error! DB is null!");
 		return EXIT_FAILURE;
 		// Close the connection to the DB
+		
+		
+		
+		/*
+		* 
+		* THIS CLOSE MUST BE PUT INTO THE EXIT PATH OF THE SWITCH STATEMENT! THE DB MUST BE CLOSED!
+		*/
+		
 		mysql_close(databaseObject);
 	}
 
@@ -283,119 +490,50 @@ int main()
 	if (ConnectToDatabase(databaseObject, server, userName, password, defaultDatabase))
 	{
 		printf("Connected!\n");
+		// This is where the switch lives
 	}
 	else
 	{
 		printf("Did not connect! EEP!\n");
+		return EXIT_FAILURE;
+		// This is where the program goes to die, instead of the switch.
 	}
 
 
 	/*
-	*
 	* TRY TO GET CUSTOMER
-	*
 	*/
-	printf("------ Does Customer Exist Testing ------\n\n");
+	printf("------ DO NOT DELETE THIS ADD NEW RENTAL TESTING ------\n\n");
 
-	
-	int customerIdToCheck = 66; // The ID to check
-
-	if (!CheckIfCustomerExists(databaseObject, customerIdToCheck))
-	{
-		// Bad things happened
-		printf("Failed to find customer!\n");
-		return EXIT_FAILURE;
-	}
-	else
-	{
-		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
-
-		// If it failed to get any results for some reason
-		if (customerResult == NULL)
-		{
-			// Print the SQL error
-			printf("Failed to get the result set! %s", mysql_error(databaseObject));
-			return EXIT_FAILURE;
-		}
-
-		// Check if the result set is empty (customer does not exist)
-		// Check the mysql_num_rows to see if any rows were returned.
-		if (!CheckRowResult(customerResult))
-		{
-			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
-		}
-		else
-		{
-			MYSQL_ROW customerRow;
-			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
-			{
-				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
-			}
-		}
-
-		mysql_free_result(customerResult);
-	}
+	// UNCOMMENT TO ADD A NEW RENTAL< WORKING DO NOT TOUCHEY
+	//printf("\nCHECK FIRST FUNCTION--------\n");
+	//
+	//if (!AddNewRental(databaseObject))
+	//{
+	//	printf("There was a problem with the whole thing...\n");
+	//}
+	//else
+	//{
+	//	printf("You entered valid information!\n");
+	//}
 
 
-	// END OF CUSTOMER CHECKING
+	//printf("\nEND CHECK FIRST FUNCTION--------\n");
 
 
+	printf("\n-------- DO NOT DELETE THIS Outstanding RENTALS Testing -----------\n");
 	/*
-	*
-	* BEGIN CHECKING MOVIE AVAILABILITY
-	*
-	*
-	*/
-	printf("\n-------- Movie Available Testing -----------\n");
 
-	// Check the film
-	 // Note 1001 is NOT available and will return the opposite result!
-	// It is setup in my database to be a movie that CANNOT be rented
-	int filmToCheck = 1000;
-	CheckIfFilmIsAvailable(databaseObject, filmToCheck);
-
-	MYSQL_RES* checkFilmResult = mysql_store_result(databaseObject);
-
-	// If it failed to get any results for some reason
-	if (checkFilmResult == NULL)
-	{
-		// Print the SQL error
-		printf("Failed to get the result set! %s", mysql_error(databaseObject));
-		return EXIT_FAILURE;
-	}
-
-	// Check the returned rows to see if the query returned anything
-	if (!CheckRowResult(checkFilmResult))
-	{
-		printf("\nMOVIE #%d NOT AVAILABLE\n", filmToCheck);
-	}
-	// The customer DOES exist, print out information!
-	else
-	{
-		MYSQL_ROW movieRow;
-		while ((movieRow = mysql_fetch_row(checkFilmResult)) != NULL)
-		{
-			printf("MOVIE ID: Records found: MOVIE info: %s\nMOVIE IS AVAILABLE IN INVENTORY FOR RENT\n\n", movieRow[0]);
-		}
-		mysql_free_result(checkFilmResult);
-	}
-
-
-
-
-
-
-	printf("\n-------- Outstanding RENTALS Testing -----------\n");
-	/*
-	
 	CHECK IF SOMEONE HAS OUTSTANDING RENTALS!
-	
-	
+	This will call the function to send the query to check using the customer ID when the deletion menu option is selected
+	It will tell you if the customer has outstanding rentals, which is when you can decide which action to take either delete or not
+
+
 	*/
 	// has returns: 11, 33, 66
 	// does not, 1
 	int customerIdToCheckForOutstandRentals = 1;
-	CheckForOutstandingRentals(databaseObject, customerIdToCheckForOutstandRentals);
+	OutstandingRentalsQuery(databaseObject, customerIdToCheckForOutstandRentals);
 	MYSQL_RES* checkOutstandingRentals = mysql_store_result(databaseObject);
 	//MYSQL_RES* checkFilmResult = mysql_store_result(databaseObject);
 
