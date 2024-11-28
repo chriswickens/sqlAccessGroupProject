@@ -213,7 +213,7 @@ bool AddNewRental(MYSQL* databaseObject)
 	printf("Please enter the movie inventory_id:");
 	int inventoryIdToCheck = GetIntegerFromUser(); // Get the inventory_id for the movie
 	printf("Please enter the staff_id:");
-	int staffIdToCheck = GetIntegerFromUser();
+	int staffIdToCheck = GetIntegerFromUser(); // Get the staff ID from the user
 
 	/*
 	*
