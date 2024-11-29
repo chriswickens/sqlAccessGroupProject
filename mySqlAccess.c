@@ -9,11 +9,17 @@
 int GetIntegerFromUser();
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
 bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber);
+bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber);
 bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
+bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
 void PromptForYesOrNo();
 void clearCarriageReturn(char buffer[]); // Stealing Seans valor, AGAIN. Because C.
+
+
+// Function headers for operation functions
+bool AddNewRental(MYSQL* databaseObject);
 
 // Gets an integer, DUH.
 int GetIntegerFromUser()
