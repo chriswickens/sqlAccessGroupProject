@@ -12,7 +12,7 @@ bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber);
 bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
-
+void PromptForYesOrNo();
 void clearCarriageReturn(char buffer[]); // Stealing Seans valor, AGAIN. Because C.
 
 // Gets an integer, DUH.
@@ -284,6 +284,8 @@ bool AddNewRental(MYSQL* databaseObject)
 	if (!CheckRowResult(checkInventoryResult))
 	{
 		printf("\nMOVIE #%d NOT AVAILABLE\n", inventoryIdToCheck);
+		PromptForYesOrNo();
+		return false;
 	}
 	else
 	{
