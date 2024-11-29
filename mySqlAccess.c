@@ -153,7 +153,7 @@ bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id)
 
 
 
-// Sends a query, and lets you know if it failed for some reason
+// Attempts to execute a query, and lets you know if it failed for some reason
 // returns true or false
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 {
@@ -236,7 +236,7 @@ bool AddNewRental(MYSQL* databaseObject)
 		if (customerResult == NULL)
 		{
 			// Print the SQL error
-			printf("Failed to get the result set! %s", mysql_error(databaseObject));
+			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
 			return false;
 		}
 
@@ -244,6 +244,7 @@ bool AddNewRental(MYSQL* databaseObject)
 		if (!CheckRowResult(customerResult))
 		{
 			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
+			return false;
 		}
 		// The result has at LEAST ONE row, the customer DOES exist!
 		else
@@ -277,7 +278,7 @@ bool AddNewRental(MYSQL* databaseObject)
 
 	if (checkInventoryResult == NULL)
 	{
-		printf("Failed to get the result set! %s", mysql_error(databaseObject));
+		printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
 		return false;
 	}
 
@@ -316,7 +317,7 @@ bool AddNewRental(MYSQL* databaseObject)
 	if (checkStaffResult == NULL)
 	{
 		// Print the SQL error
-		printf("Failed to find the staff ID %s", mysql_error(databaseObject));
+		printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
 		return false;
 	}
 
