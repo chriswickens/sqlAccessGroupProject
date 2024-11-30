@@ -982,6 +982,14 @@ int main()
 
 		case 2:
 			printf("\nUpdate Customer Information - Selected item #%d\n", menuItem);
+			if (!UpdateCustomerInformation(databaseObject))
+			{
+				printf("Unsuccessful query for updating customer information, try again!\n\n");
+			}
+			else
+			{
+				printf("Customer information successfully updated!\n\n");
+			}
 			break;
 
 		case 3:
