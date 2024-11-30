@@ -14,6 +14,8 @@ bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
 bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
+bool UpdateCustomerInformation(MYSQL* databaseObject);
+bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
 void PromptForYesOrNo();
 void clearCarriageReturn(char buffer[]); // Stealing Seans valor, AGAIN. Because C.
 
@@ -165,7 +167,7 @@ bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 {
 	if (mysql_query(databaseObject, queryString) != 0)
 	{
-		printf("Failed on query!");
+		printf("Failed on query!\n");
 		mysql_close(databaseObject);
 		return false;
 	}
@@ -208,6 +210,102 @@ void clearCarriageReturn(char buffer[])
 	{
 		*whereCR = '\0';
 	}
+}
+
+
+bool UpdateCustomerInformation(MYSQL* databaseObject)
+{
+	char yesOrNo = 'Y';						// temporarily changed to yes to make my life easier
+	char newEntry[MAX_STRING_SIZE];
+	int menu = 0;							// menu control for choosing what to update
+	int customerToUpdate = 0;
+	bool update = false;					// controls whether or not we are updating something - defaulted to false
+	bool updateReturn = false;				// this determines whether or not the update was successful for the user to know
+
+	printf("Would you like to update a customer's information? Y/N\n");
+	//yesOrNo = getchar();					// defaulting to yes to make my life easier for now...
+
+	switch (yesOrNo)
+	{
+	case 'Y':
+		printf("You have chosen yes.\n");
+		printf("Choose the ID of the customer to update.\n");
+		customerToUpdate = GetIntegerFromUser();
+		update = true;						// change this to true to access menu for options to update
+		break;
+	case 'N':
+		printf("Returning to menu.\n");		// let the user know they are returning to our default menu
+		break;
+	default:
+		printf("Invalid input. Closing request.\n");		// if someone is stupid and can't read, this probably won't help
+		updateReturn = false;				// let's the main() know nothing was updated
+	}
+	
+	if (update)								// if update is true we go here
+	{
+		while (menu == 0)
+		{
+			printf("Please choose what you would like to update:\n");
+			printf("1)\tFirst Name\n");
+			printf("2)\tLast Name\n");
+			printf("3)\tEmail\n");
+			printf("4)\tAddress\n");
+			printf("5)\tReturn to main menu.\n");
+			menu = GetIntegerFromUser();					// get their input for which menu item
+
+			switch (menu)
+			{
+			case 1:
+				printf("You chose First Name.\n");
+				printf("Please enter a new name. Do not use any whitespace.\n");
+				fgets(newEntry, sizeof(newEntry), stdin);
+				clearCarriageReturn(newEntry);
+				updateReturn = UpdateCustomerFirstName(databaseObject, customerToUpdate, newEntry);
+				if (updateReturn == false)
+				{
+					printf("Did not update.\n");
+				}
+				break;
+			case 2:
+				printf("You chose Last Name.\n");
+				break;
+			case 3:
+				printf("You chose Email.\n");
+				break;
+			case 4:
+				printf("You chose Address.\n");
+				break;
+			case 5:
+				printf("Returning to main menu.\n");		// if they don't want to update they can exit using this option
+				updateReturn = false;
+				break;
+			default:
+				printf("Please chose one of the listed options.\n");		// if they didn't chose a valid option there
+				menu = 0;													// this makes sure we go back to the menu and re-prompt them
+			}
+		}
+	}
+
+	return updateReturn; 
+}
+
+
+bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET first_name = %s\n"
+		"WHERE customer_id = %d\n", customer_name, customer_id);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true; 
 }
 
 
@@ -474,7 +572,7 @@ int main()
 	// Server crap
 	const char* server = "localhost";
 	const char* userName = "root";
-	const char* password = "cwickens01";
+	const char* password = "Marv3l-Xm3n";
 	const char* defaultDatabase = "sakila";
 
 	// 1) initialize a database connection objects
@@ -507,6 +605,8 @@ int main()
 		return EXIT_FAILURE;
 		// This is where the program goes to die, instead of the switch.
 	}
+
+	UpdateCustomerInformation(databaseObject);
 
 
 	/*
@@ -541,34 +641,34 @@ int main()
 	*/
 	// has returns: 11, 33, 66
 	// does not, 1
-	int customerIdToCheckForOutstandRentals = 1;
-	OutstandingRentalsQuery(databaseObject, customerIdToCheckForOutstandRentals);
-	MYSQL_RES* checkOutstandingRentals = mysql_store_result(databaseObject);
-	//MYSQL_RES* checkFilmResult = mysql_store_result(databaseObject);
+	//int customerIdToCheckForOutstandRentals = 1;
+	//OutstandingRentalsQuery(databaseObject, customerIdToCheckForOutstandRentals);
+	//MYSQL_RES* checkOutstandingRentals = mysql_store_result(databaseObject);
+	////MYSQL_RES* checkFilmResult = mysql_store_result(databaseObject);
 
-	// If it failed to get any results for some reason
-	if (checkOutstandingRentals == NULL)
-	{
-		// Print the SQL error
-		printf("Failed to get the result set! %s", mysql_error(databaseObject));
-		return EXIT_FAILURE;
-	}
+	//// If it failed to get any results for some reason
+	//if (checkOutstandingRentals == NULL)
+	//{
+	//	// Print the SQL error
+	//	printf("Failed to get the result set! %s", mysql_error(databaseObject));
+	//	return EXIT_FAILURE;
+	//}
 
-	// Check the returned rows to see if the query returned anything
-	if (!CheckRowResult(checkOutstandingRentals))
-	{
-		printf("\nCustomer has NO outstanding rentals!\n");
-	}
-	// The customer DOES exist, print out information!
-	else
-	{
-		MYSQL_ROW outstandingRentalData;
-		while ((outstandingRentalData = mysql_fetch_row(checkOutstandingRentals)) != NULL)
-		{
-			printf("OUTSTANDING RENTAL: MOVIE info:\n\tID: %s\n\ttitle: %s\n\tRental Date: %s\n\tReturn date: %s \n\n", outstandingRentalData[0], outstandingRentalData[3], outstandingRentalData[1], outstandingRentalData[2]);
-		}
-		mysql_free_result(checkOutstandingRentals);
-	}
+	//// Check the returned rows to see if the query returned anything
+	//if (!CheckRowResult(checkOutstandingRentals))
+	//{
+	//	printf("\nCustomer has NO outstanding rentals!\n");
+	//}
+	//// The customer DOES exist, print out information!
+	//else
+	//{
+	//	MYSQL_ROW outstandingRentalData;
+	//	while ((outstandingRentalData = mysql_fetch_row(checkOutstandingRentals)) != NULL)
+	//	{
+	//		printf("OUTSTANDING RENTAL: MOVIE info:\n\tID: %s\n\ttitle: %s\n\tRental Date: %s\n\tReturn date: %s \n\n", outstandingRentalData[0], outstandingRentalData[3], outstandingRentalData[1], outstandingRentalData[2]);
+	//	}
+	//	mysql_free_result(checkOutstandingRentals);
+	//}
 
 
 	/*
@@ -641,6 +741,7 @@ int main()
 	//const char* updateActor = "UPDATE actor SET first_name = 'John' WHERE actor_id = 1";
 
 	//// Close the connection to the DB
+
 	mysql_close(databaseObject);
 
 	return EXIT_SUCCESS;
