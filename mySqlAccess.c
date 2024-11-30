@@ -9,7 +9,7 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "cwickens01"
+#define PASSWORD "Marv3l-Xm3n"
 #define DEFAULTDATABASE "sakila"
 
 // Date ranges
@@ -31,6 +31,10 @@ bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
 bool UpdateCustomerInformation(MYSQL* databaseObject);
 bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
+bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
+bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
+bool ValidateEmailAddress(char* address);
+bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
 void PromptForYesOrNo();
 void ClearCarriageReturn(char buffer[]);
 void GetDateFromUser(char dateString[]);
@@ -204,11 +208,13 @@ void ClearCarriageReturn(char buffer[])
 bool UpdateCustomerInformation(MYSQL* databaseObject)
 {
 	char yesOrNo = 'Y';						// temporarily changed to yes to make my life easier
-	char newEntry[MAX_STRING_SIZE];
+	char newEntry[MAX_STRING_SIZE];			// hold the input for the update
 	int menu = 0;							// menu control for choosing what to update
-	int customerToUpdate = 0;
+	int newAddressId = 0;					// if updating the address this holds the id for new address
+	int customerToUpdate = 0;				// holds the customer id for the person we are updating info for
 	bool update = false;					// controls whether or not we are updating something - defaulted to false
 	bool updateReturn = false;				// this determines whether or not the update was successful for the user to know
+	bool validEmail = false;				// control for if an email is valid or not
 
 	printf("Would you like to update a customer's information? Y/N\n");
 	//yesOrNo = getchar();					// defaulting to yes to make my life easier for now...
@@ -233,42 +239,115 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	{
 		while (menu == 0)
 		{
-			printf("Please choose what you would like to update:\n");
+			// menu presented to user - populates through every loop
+			printf("\nPlease choose what you would like to update:\n");
 			printf("1)\tFirst Name\n");
 			printf("2)\tLast Name\n");
 			printf("3)\tEmail\n");
 			printf("4)\tAddress\n");
-			printf("5)\tReturn to main menu.\n");
-			menu = GetIntegerFromUser();					// get their input for which menu item
+			printf("5)\tReturn to main menu.\n\n");
+			menu = GetIntegerFromUser();					// get their input for which menu item - appears until a success or user enters 5
 
 			switch (menu)
 			{
 			case 1:
-				printf("You chose First Name.\n");
-				printf("Please enter a new name. Do not use any whitespace.\n");
+				printf("\nPlease enter a new first name. Do not use any whitespace.\n");
+
+				// get the new name from the user
 				fgets(newEntry, sizeof(newEntry), stdin);
-				clearCarriageReturn(newEntry);
+				// clear the \n from the entry so it doesn't interfere with the database query
+				ClearCarriageReturn(newEntry);
+
+				// if the update of the first name is false then notify the user that it didn't update and reload the menu
 				updateReturn = UpdateCustomerFirstName(databaseObject, customerToUpdate, newEntry);
 				if (updateReturn == false)
 				{
-					printf("Did not update.\n");
+					printf("\nThere was an error. Did not update.\n");
+					menu == 0;
 				}
+
+				// leave the loop and return to the main interface if menu != 0
 				break;
 			case 2:
-				printf("You chose Last Name.\n");
+				printf("\nPlease enter a new last name. Do not use any whitespace.\n");
+
+				// get the new last name from the user
+				fgets(newEntry, sizeof(newEntry), stdin);
+				// clear the \n from the entry so it doesn't interfere with the database query
+				ClearCarriageReturn(newEntry);
+
+				// if the update of the last name is false then notify the user that it didn't update and reload the menu
+				updateReturn = UpdateCustomerLastName(databaseObject, customerToUpdate, newEntry);
+				if (updateReturn == false)
+				{
+					printf("\nThere was an error. Did not update.\n");
+					menu == 0;
+				}
+
+				// leave the loop and return to the main interface if menu != 0
 				break;
 			case 3:
-				printf("You chose Email.\n");
+				printf("\nPlease enter a new email address. Do not user any whitespace. It must include an '@' symbol and end in '.com'.\n");
+
+				// get the new email from the user
+				fgets(newEntry, sizeof(newEntry), stdin);
+
+				// validate the email by checking for the '@' and for the ending of '.com'
+				validEmail = ValidateEmailAddress(newEntry);
+
+				// if the email didn't meet the validation requirements, notify the user and reload the menu
+				if (validEmail == false)
+				{
+					printf("\nThe email address is not valid.\n");
+					menu == 0;
+					break;
+				}
+
+				// if email is valid remove the \n so it doesn't interfere with the database query
+				ClearCarriageReturn(newEntry);
+
+				// if the update of the email is false then notify the user that it didn't update and reload the menu
+				updateReturn = UpdateCustomerEmail(databaseObject, customerToUpdate, newEntry);
+				if (updateReturn == false)
+				{
+					printf("\nThere was an error. Did not update.\n");
+					menu == 0;
+				}
+
+				// leave the loop and return to the main interface if menu != 0
 				break;
 			case 4:
-				printf("You chose Address.\n");
+				printf("\nPlease enter a new address id for the customer. It cannot be less than 1 or greater than 605.\n");
+
+				// get an integer from the user
+				newAddressId = GetIntegerFromUser();
+				// if the integer is not between 1 and 605 inclusive, notify the user it wasn't valid and reload the menu
+				if (newAddressId < 1 || newAddressId > 605)
+				{
+					printf("\nThe address ID was not valid.\n");
+					menu == 0;
+					break;
+				}
+
+				// if the update of the address ID is false then notify the user that it didn't update and reload the menu
+				updateReturn = UpdateCustomerAddressId(databaseObject, customerToUpdate, newAddressId);
+				if (updateReturn == false)
+				{
+					printf("\nThere was an error. Did not update.\n");
+					menu == 0;
+				}
+
+				// leave the loop and return to the main interface if menu != 0
 				break;
 			case 5:
-				printf("Returning to main menu.\n");		// if they don't want to update they can exit using this option
+				printf("\nReturning to main menu.\n");		// if they don't want to update they can exit using this option
+				// set the return value for the function to false because no changes were made
 				updateReturn = false;
+
+				// leave the loop and return to the main interface if menu != 0
 				break;
 			default:
-				printf("Please chose one of the listed options.\n");		// if they didn't chose a valid option there
+				printf("\nPlease chose one of the listed options.\n");		// if they didn't chose a valid option there
 				menu = 0;													// this makes sure we go back to the menu and re-prompt them
 			}
 		}
@@ -294,6 +373,85 @@ bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* custo
 	}
 
 	return true; 
+}
+
+
+bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* customer_lastName)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET last_name = %s\n"
+		"WHERE customer_id = %d", customer_lastName, customer_id);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true; 
+}
+
+
+bool ValidateEmailAddress(char* address)
+{
+	char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
+	char emailEnding[MAX_STRING_SIZE] = '.com';		// used to search user string for the first occurrence of '.com'
+	char* dotCom = NULL;							// pointer used for strstr function
+	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
+	char* pointer = NULL;							// pointer used for strchr function
+
+	pointer = strchr(email, ch);					// searches the user input email address for the '@'
+	dotCom = strstr(email, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
+
+	// if either pointer is null, aka it did not find the occurrence of those requirements
+	if (pointer == NULL || dotCom == NULL)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET email = %s\n"
+		"WHERE customer_id = %d", customer_email, customer_id);
+
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true; 
+}
+
+
+bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET address_id = %d\n"
+		"WHERE customer_id = %d", address_id, customer_id);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
 }
 
 
