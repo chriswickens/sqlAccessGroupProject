@@ -40,11 +40,10 @@ void ClearCarriageReturn(char buffer[]);
 void GetDateFromUser(char dateString[]);
 bool CheckRentalHistory(MYSQL* databaseObject);
 
-
 // Function headers for operation functions
 bool AddNewRental(MYSQL* databaseObject);
 bool DeleteCustomerRecord(MYSQL* databaseObject);
-// Gets an integer, DUH.
+
 
 // Function to connect to the database
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase)
@@ -61,6 +60,7 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 	return true;
 }
 
+// Function to see if customer exists
 bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
