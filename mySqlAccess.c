@@ -10,7 +10,7 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "Sah@-123"
+#define PASSWORD "Marv3l-Xm3n"
 #define DEFAULTDATABASE "sakila"
 
 // Date ranges
@@ -213,7 +213,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	char newEntry[MAX_STRING_SIZE];			// hold the input for the update
 	int menu = 0;							// menu control for choosing what to update
 	int newAddressId = 0;					// if updating the address this holds the id for new address
-	int customerToUpdate = 0;				// holds the customer id for the person we are updating info for
+	int customerToUpdate = NULL;			// holds the customer id for the person we are updating info for
 	bool update = false;					// controls whether or not we are updating something - defaulted to false
 	bool updateReturn = false;				// this determines whether or not the update was successful for the user to know
 	bool validEmail = false;				// control for if an email is valid or not
@@ -225,10 +225,15 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	switch (yesOrNo[0])		// we only care about the first index which should have Y or N
 	{
 	case 'Y':
-		printf("\nYou have chosen yes.\n");
 		printf("Choose the ID of the customer to update.\n");
 		customerToUpdate = GetIntegerFromUser();
-		update = true;						// change this to true to access menu for options to update
+		if (!CustomerExistsQuery(databaseObject, customerToUpdate))
+		{
+			printf("Failed to find customer.\n");
+			update = false;						// change this to true to access menu for options to update
+			break;
+		}
+		update = true;
 		break;
 	case 'N':
 		printf("\nReturning to menu.\n");		// let the user know they are returning to our default menu
