@@ -10,7 +10,7 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "Marv3l-Xm3n"
+#define PASSWORD "Sah@-123"
 #define DEFAULTDATABASE "sakila"
 
 // Date ranges
@@ -642,16 +642,21 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 	printf("\t3) All payment records associated with this customer will be deleted from the database.\n");
 	printf("\t4) The address associated with this customer will be deleted from the database.\n\n");
 	printf("Would you like to proceed with deleting a customer?\n\n");
-	printf("Enter 'y' to proceed or any input to cancel.\n");
+	printf("Enter 'Y' to proceed or any input to cancel.\n");
 
 	// Get char input from user
 	//char input;
 
 	// printf("Type Y or N: ");
-	char input = getchar();
+	//char input = getchar();
+	
+	char yesOrNo[MAX_STRING_SIZE];						// temporarily changed to yes to make my life easier
+
+	fgets(yesOrNo, sizeof(yesOrNo), stdin);
+
 
 	// If user enters 'y', then continue with deletion logic. Otherwise, cancel deletion.
-	if (input == 'y')
+	if (yesOrNo == 'Y')
 	{
 		// Prompt customer id
 		printf("You've chosen to proceed with deletion.\n\n");
