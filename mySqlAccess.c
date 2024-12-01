@@ -208,7 +208,7 @@ void ClearCarriageReturn(char buffer[])
 
 bool UpdateCustomerInformation(MYSQL* databaseObject)
 {
-	char yesOrNo;						// temporarily changed to yes to make my life easier
+	char yesOrNo[MAX_STRING_SIZE];						// temporarily changed to yes to make my life easier
 	char newEntry[MAX_STRING_SIZE];			// hold the input for the update
 	int menu = 0;							// menu control for choosing what to update
 	int newAddressId = 0;					// if updating the address this holds the id for new address
@@ -218,9 +218,10 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	bool validEmail = false;				// control for if an email is valid or not
 
 	printf("Would you like to update a customer's information? Y/N\n");
-	yesOrNo = getchar();					// defaulting to yes to make my life easier for now...
+	//yesOrNo = getchar();					// defaulting to yes to make my life easier for now...
+	fgets(yesOrNo, sizeof(yesOrNo), stdin);
 
-	switch (yesOrNo)
+	switch (yesOrNo[0])
 	{
 	case 'Y':
 		printf("You have chosen yes.\n");
