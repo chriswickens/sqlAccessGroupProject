@@ -217,7 +217,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	bool update = false;					// controls whether or not we are updating something - defaulted to false
 	bool updateReturn = false;				// this determines whether or not the update was successful for the user to know
 	bool validEmail = false;				// control for if an email is valid or not
-	bool validName = false;					// control for if a name is valid or not
+	bool noWhitespace = false;					// control for if a name is valid or not
 
 	printf("Would you like to update a customer's information? Y/N\n");
 	fgets(yesOrNo, sizeof(yesOrNo), stdin);
@@ -262,8 +262,8 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				ClearCarriageReturn(newEntry);
 
 				//validate the name by making sure there are no spaces in it
-				validName = ValidateNameEntry(newEntry);
-				if (validName == false)
+				noWhitespace = ValidateNameEntry(newEntry);
+				if (noWhitespace == false)
 				{
 					printf("\nPlease do not include any whitespace in name entry.\n");
 					menu = 0;
@@ -289,8 +289,8 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				ClearCarriageReturn(newEntry);
 
 				//validate the name by making sure there are no spaces in it
-				validName = ValidateNameEntry(newEntry);
-				if (validName == false)
+				noWhitespace = ValidateNameEntry(newEntry);
+				if (noWhitespace == false)
 				{
 					printf("\nPlease do not include any whitespace in name entry.\n");
 					menu = 0;
@@ -315,9 +315,10 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 
 				// validate the email by checking for the '@' and for the ending of '.com'
 				validEmail = ValidateEmailAddress(newEntry);
+				noWhitespace = ValidateNameEntry(newEntry);
 
 				// if the email didn't meet the validation requirements, notify the user and reload the menu
-				if (validEmail == false)
+				if (validEmail == false || noWhitespace == false)
 				{
 					printf("\nThe email address is not valid.\n");
 					menu = 0;
@@ -380,7 +381,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 
 bool ValidateNameEntry(char* name)
 {
-	int asciiValue = ' ';								// cahracter we are searching for
+	int asciiValue = ' ';								// character we are searching for
 	char* pointer = NULL;
 
 	pointer = strchr(name, asciiValue);					// searches the user input email address for the ' '
