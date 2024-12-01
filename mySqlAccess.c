@@ -33,7 +33,7 @@ bool CheckRowResult(MYSQL_RES* resultToCheck);
 bool UpdateCustomerInformation(MYSQL* databaseObject);
 bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
 bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
-bool ValidateNameEntry(char* name);
+bool NoWhitespaceCheck(char* name);
 bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
 bool ValidateEmailAddress(char* address);
 bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
@@ -262,7 +262,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				ClearCarriageReturn(newEntry);
 
 				//validate the name by making sure there are no spaces in it
-				noWhitespace = ValidateNameEntry(newEntry);
+				noWhitespace = NoWhitespaceCheck(newEntry);
 				if (noWhitespace == false)
 				{
 					printf("\nPlease do not include any whitespace in name entry.\n");
@@ -289,7 +289,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				ClearCarriageReturn(newEntry);
 
 				//validate the name by making sure there are no spaces in it
-				noWhitespace = ValidateNameEntry(newEntry);
+				noWhitespace = NoWhitespaceCheck(newEntry);
 				if (noWhitespace == false)
 				{
 					printf("\nPlease do not include any whitespace in name entry.\n");
@@ -315,7 +315,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 
 				// validate the email by checking for the '@' and for the ending of '.com'
 				validEmail = ValidateEmailAddress(newEntry);
-				noWhitespace = ValidateNameEntry(newEntry);
+				noWhitespace = NoWhitespaceCheck(newEntry);
 
 				// if the email didn't meet the validation requirements, notify the user and reload the menu
 				if (validEmail == false || noWhitespace == false)
@@ -379,7 +379,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 }
 
 
-bool ValidateNameEntry(char* name)
+bool NoWhitespaceCheck(char* name)
 {
 	int asciiValue = ' ';								// character we are searching for
 	char* pointer = NULL;
