@@ -1,4 +1,4 @@
-USE sakila;
+USE sget_customer_balanceakila;
 
 
 INSERT INTO rental (rental_date, inventory_id, customer_id, return_date, staff_id)
@@ -97,3 +97,40 @@ JOIN inventory i ON r.inventory_id = i.inventory_id
 JOIN film f ON i.film_id = f.film_id
 WHERE r.customer_id = 1  -- Use 33 for testing, as above you added them to the database with an outstanding rental, two in fact.
 AND r.return_date IS NULL;
+
+SELECT * FROM customer
+WHERE customer_id = 33;
+
+UPDATE customer
+SET first_name = TRIM(' ' FROM 'John')
+WHERE customer_id = 33;
+
+UPDATE customer
+SET last_name = 'Smith'
+WHERE customer_id = 33;
+
+SELECT * FROM address
+WHERE customer_id = 33;
+
+UPDATE customer
+SET address_id = 1  -- Replace 123 with the new address_id
+WHERE customer_id = 33;  -- Replace 1 with the actual customer_id
+
+SELECT cu.first_name, cu.last_name, a.address, a.address2, a.district, 
+       c.city, a.postal_code, a.phone
+FROM customer cu
+JOIN address a ON cu.address_id = a.address_id
+JOIN city c ON a.city_id = c.city_id
+WHERE cu.customer_id = 33;  -- Replace 1 with the actual customer_id
+
+UPDATE address
+SET address = '123 Poop Street'  -- Replace with the new address
+WHERE address_id = (
+    SELECT address_id
+    FROM customer
+    WHERE customer_id = 33  -- Replace 1 with the actual customer_id
+);
+
+UPDATE customer
+SET email = 'imalittleteapot@me.com'  -- Replace with the new email
+WHERE customer_id = 33;  -- Replace 1 with the actual customer_id

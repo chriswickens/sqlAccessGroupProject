@@ -33,6 +33,7 @@ bool CheckRowResult(MYSQL_RES* resultToCheck);
 bool UpdateCustomerInformation(MYSQL* databaseObject);
 bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
 bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
+bool NoWhitespaceCheck(char* name);
 bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
 bool ValidateEmailAddress(char* address);
 bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
@@ -216,6 +217,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	bool update = false;					// controls whether or not we are updating something - defaulted to false
 	bool updateReturn = false;				// this determines whether or not the update was successful for the user to know
 	bool validEmail = false;				// control for if an email is valid or not
+	bool noWhitespace = false;					// control for if a name is valid or not
 
 	printf("Would you like to update a customer's information? Y/N\n");
 	fgets(yesOrNo, sizeof(yesOrNo), stdin);
@@ -223,16 +225,16 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	switch (yesOrNo[0])		// we only care about the first index which should have Y or N
 	{
 	case 'Y':
-		printf("You have chosen yes.\n");
+		printf("\nYou have chosen yes.\n");
 		printf("Choose the ID of the customer to update.\n");
 		customerToUpdate = GetIntegerFromUser();
 		update = true;						// change this to true to access menu for options to update
 		break;
 	case 'N':
-		printf("Returning to menu.\n");		// let the user know they are returning to our default menu
+		printf("\nReturning to menu.\n");		// let the user know they are returning to our default menu
 		break;
 	default:
-		printf("Invalid input. Closing request.\n");		// if someone is stupid and can't read, this probably won't help
+		printf("\nInvalid input.\n");		// if someone is stupid and can't read, this probably won't help
 		updateReturn = false;				// let's the main() know nothing was updated
 	}
 	
@@ -259,6 +261,15 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				// clear the \n from the entry so it doesn't interfere with the database query
 				ClearCarriageReturn(newEntry);
 
+				//validate the name by making sure there are no spaces in it
+				noWhitespace = NoWhitespaceCheck(newEntry);
+				if (noWhitespace == false)
+				{
+					printf("\nPlease do not include any whitespace in name entry.\n");
+					menu = 0;
+					break;
+				}
+
 				// if the update of the first name is false then notify the user that it didn't update and reload the menu
 				updateReturn = UpdateCustomerFirstName(databaseObject, customerToUpdate, newEntry);
 				if (updateReturn == false)
@@ -276,6 +287,15 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				fgets(newEntry, sizeof(newEntry), stdin);
 				// clear the \n from the entry so it doesn't interfere with the database query
 				ClearCarriageReturn(newEntry);
+
+				//validate the name by making sure there are no spaces in it
+				noWhitespace = NoWhitespaceCheck(newEntry);
+				if (noWhitespace == false)
+				{
+					printf("\nPlease do not include any whitespace in name entry.\n");
+					menu = 0;
+					break;
+				}
 
 				// if the update of the last name is false then notify the user that it didn't update and reload the menu
 				updateReturn = UpdateCustomerLastName(databaseObject, customerToUpdate, newEntry);
@@ -295,9 +315,10 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 
 				// validate the email by checking for the '@' and for the ending of '.com'
 				validEmail = ValidateEmailAddress(newEntry);
+				noWhitespace = NoWhitespaceCheck(newEntry);
 
 				// if the email didn't meet the validation requirements, notify the user and reload the menu
-				if (validEmail == false)
+				if (validEmail == false || noWhitespace == false)
 				{
 					printf("\nThe email address is not valid.\n");
 					menu = 0;
@@ -355,6 +376,21 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	}
 
 	return updateReturn; 
+}
+
+
+bool NoWhitespaceCheck(char* name)
+{
+	int asciiValue = ' ';								// character we are searching for
+	char* pointer = NULL;
+
+	pointer = strchr(name, asciiValue);					// searches the user input email address for the ' '
+	if (pointer != NULL)								// if the pointer find a ' ' character return false
+	{
+		return false;
+	}
+
+	return true;
 }
 
 
