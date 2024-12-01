@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <mysql.h>
 
 #pragma warning(disable : 4996)
@@ -207,7 +208,7 @@ void ClearCarriageReturn(char buffer[])
 
 bool UpdateCustomerInformation(MYSQL* databaseObject)
 {
-	char yesOrNo = 'Y';						// temporarily changed to yes to make my life easier
+	char yesOrNo;						// temporarily changed to yes to make my life easier
 	char newEntry[MAX_STRING_SIZE];			// hold the input for the update
 	int menu = 0;							// menu control for choosing what to update
 	int newAddressId = 0;					// if updating the address this holds the id for new address
@@ -217,7 +218,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	bool validEmail = false;				// control for if an email is valid or not
 
 	printf("Would you like to update a customer's information? Y/N\n");
-	//yesOrNo = getchar();					// defaulting to yes to make my life easier for now...
+	yesOrNo = getchar();					// defaulting to yes to make my life easier for now...
 
 	switch (yesOrNo)
 	{
@@ -263,7 +264,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				if (updateReturn == false)
 				{
 					printf("\nThere was an error. Did not update.\n");
-					menu == 0;
+					menu = 0;
 				}
 
 				// leave the loop and return to the main interface if menu != 0
@@ -281,7 +282,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				if (updateReturn == false)
 				{
 					printf("\nThere was an error. Did not update.\n");
-					menu == 0;
+					menu = 0;
 				}
 
 				// leave the loop and return to the main interface if menu != 0
@@ -299,7 +300,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				if (validEmail == false)
 				{
 					printf("\nThe email address is not valid.\n");
-					menu == 0;
+					menu = 0;
 					break;
 				}
 
@@ -311,7 +312,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				if (updateReturn == false)
 				{
 					printf("\nThere was an error. Did not update.\n");
-					menu == 0;
+					menu = 0;
 				}
 
 				// leave the loop and return to the main interface if menu != 0
@@ -325,7 +326,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				if (newAddressId < 1 || newAddressId > 605)
 				{
 					printf("\nThe address ID was not valid.\n");
-					menu == 0;
+					menu = 0;
 					break;
 				}
 
@@ -334,7 +335,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				if (updateReturn == false)
 				{
 					printf("\nThere was an error. Did not update.\n");
-					menu == 0;
+					menu = 0;
 				}
 
 				// leave the loop and return to the main interface if menu != 0
@@ -363,7 +364,7 @@ bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* custo
 
 	sprintf(query,
 		"UPDATE customer\n"
-		"SET first_name = %s\n"
+		"SET first_name = '%s'\n"
 		"WHERE customer_id = %d\n", customer_name, customer_id);
 
 	if (!SendQueryToDatabase(databaseObject, query))
@@ -382,7 +383,7 @@ bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* custom
 
 	sprintf(query,
 		"UPDATE customer\n"
-		"SET last_name = %s\n"
+		"SET last_name = '%s'\n"
 		"WHERE customer_id = %d", customer_lastName, customer_id);
 
 	if (!SendQueryToDatabase(databaseObject, query))
@@ -397,14 +398,14 @@ bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* custom
 
 bool ValidateEmailAddress(char* address)
 {
-	char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
-	char emailEnding[MAX_STRING_SIZE] = '.com';		// used to search user string for the first occurrence of '.com'
+	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
+	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
 	char* dotCom = NULL;							// pointer used for strstr function
 	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
 	char* pointer = NULL;							// pointer used for strchr function
 
-	pointer = strchr(email, ch);					// searches the user input email address for the '@'
-	dotCom = strstr(email, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
+	pointer = strchr(address, ch);					// searches the user input email address for the '@'
+	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
 
 	// if either pointer is null, aka it did not find the occurrence of those requirements
 	if (pointer == NULL || dotCom == NULL)
@@ -422,7 +423,7 @@ bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_
 
 	sprintf(query,
 		"UPDATE customer\n"
-		"SET email = %s\n"
+		"SET email = '%s'\n"
 		"WHERE customer_id = %d", customer_email, customer_id);
 
 
