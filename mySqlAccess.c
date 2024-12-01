@@ -364,7 +364,7 @@ bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* custo
 
 	sprintf(query,
 		"UPDATE customer\n"
-		"SET first_name = '%s'\n"
+		"SET first_name = TRIM(' ' FROM '%s')\n"
 		"WHERE customer_id = %d\n", customer_name, customer_id);
 
 	if (!SendQueryToDatabase(databaseObject, query))
@@ -383,7 +383,7 @@ bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* custom
 
 	sprintf(query,
 		"UPDATE customer\n"
-		"SET last_name = '%s'\n"
+		"SET last_name = TRIM(' ' FROM '%s')\n"
 		"WHERE customer_id = %d", customer_lastName, customer_id);
 
 	if (!SendQueryToDatabase(databaseObject, query))
