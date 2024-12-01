@@ -615,13 +615,20 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 	// printf("Type Y or N: ");
 	//char input = getchar();
 	
-	char yesOrNo[MAX_STRING_SIZE];						// temporarily changed to yes to make my life easier
+	char yesOrNo[MAX_STRING_SIZE] = {""};						// temporarily changed to yes to make my life easier
+	char proceedWithDeletion[MAX_STRING_SIZE] = { "Y" };
+
+
+	printf("proceedWithDeletion = %s\n", proceedWithDeletion);
 
 	fgets(yesOrNo, sizeof(yesOrNo), stdin);
+	printf("yesOrNo = %s\n", yesOrNo);
 
+	int compareString = strcmp(yesOrNo, "Y\n");
+	printf("compareString = %d", compareString);
 
 	// If user enters 'y', then continue with deletion logic. Otherwise, cancel deletion.
-	if (yesOrNo == 'Y')
+	if (compareString == 0) 
 	{
 		// Prompt customer id
 		printf("You've chosen to proceed with deletion.\n\n");
