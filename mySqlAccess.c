@@ -218,10 +218,9 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	bool validEmail = false;				// control for if an email is valid or not
 
 	printf("Would you like to update a customer's information? Y/N\n");
-	//yesOrNo = getchar();					// defaulting to yes to make my life easier for now...
 	fgets(yesOrNo, sizeof(yesOrNo), stdin);
 
-	switch (yesOrNo[0])
+	switch (yesOrNo[0])		// we only care about the first index which should have Y or N
 	{
 	case 'Y':
 		printf("You have chosen yes.\n");
@@ -365,7 +364,7 @@ bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* custo
 
 	sprintf(query,
 		"UPDATE customer\n"
-		"SET first_name = '%s'\n"
+		"SET first_name = TRIM(' ' FROM '%s')\n"
 		"WHERE customer_id = %d\n", customer_name, customer_id);
 
 	if (!SendQueryToDatabase(databaseObject, query))
@@ -384,7 +383,7 @@ bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* custom
 
 	sprintf(query,
 		"UPDATE customer\n"
-		"SET last_name = '%s'\n"
+		"SET last_name = TRIM(' ' FROM '%s')\n"
 		"WHERE customer_id = %d", customer_lastName, customer_id);
 
 	if (!SendQueryToDatabase(databaseObject, query))
