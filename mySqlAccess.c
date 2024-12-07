@@ -965,6 +965,120 @@ int GetIntegerFromUser()
 
 int main()
 {
+	// What we've said our project will do
+	// 
+	// Add a customer
+	// add a book
+	// create an order
+	// look up/read a customer's details
+	// look up/read a book's details
+	// look up/read an order's details
+	// update a customer
+	// update a book
+	// update an order
+	// delete a customer
+	// delete a book
+	// delete an order
+	// Ability to reconfigure connection settingsand change IP address of MySQL server (I think wickens knows what this is...)
+	// Ability to access a HELP page
+	// Ability to save user’s credentials to access the project
+
+
+
+	// General plan of what we could do in main:
+
+	// 1) Login details
+	// - user enters login details to enter the program
+	// - first we check if there's any login information in the sql
+	// - if it exists, we ask for a login and validate that what the user enters matches what we have
+	// - otherwise, we ask the user to create a new login and we save that in the sql
+	
+	// 2) First menu
+	// - This menu should be used to break down the options into their own menus. An example is below:
+	// - 1) I want to do a process involving customers!
+	// - 2) I want to do a process involving books!
+	// - 3) I want to do a process involving orders!
+	// - 4) I need help!!!
+	// - 5) I need to change my login credentials!
+	
+	// 3) Sub menus
+	// - these menus are the sub menus of the options above
+	// 
+	// 3.1) Customers
+	// 1) Add customer
+	// 2) Read customer
+	// 3) update customer
+	// 4) delete customer
+	// 
+	// 3.2) Book
+	// 1) Add book
+	// 2) Read book
+	// 3) update book
+	// 4) delete book
+	// 
+	// 3.3) Order
+	// 1) Add order
+	// 2) Read order
+	// 3) update order
+	// 4) delete order
+	// 
+	// 3.4) Help page
+	// - this is mainly up to us on what we should have
+	// - we should probably have an email and phone number for customer support
+	// - maybe some basic details or an faq?
+	// - this could also be a menu such as below:
+	// 1) I need customer support!
+	// 2) How do I add a customer?
+	// 3) etc...
+	// - if we want to make this extremely simple, we could just have it be a page detailing where they can 
+	// reach us for help (i.e. email us; or call us at this number)
+	// 
+	// 3.5) Change login Credentials
+	// - this section allows the user to change their credentials
+	// - just ask for password
+	// - if the password is right, basically follow creating a new login and we save to sql
+	//
+	// 
+	// Notes:
+	// - to make it easier for us we could integrate getch() for our menu system
+	// - that way we only need actual validation for the sql parts where we're asking for information directly
+	//
+	//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// 1) initialize a database connection objects
 	MYSQL* databaseObject = mysql_init(NULL);
 	if (databaseObject == NULL) // If the object is NULL, it didnt work.
