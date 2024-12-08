@@ -1,3 +1,21 @@
+/*
+* 
+* 
+* 
+* NOTE TO EVERYONE!!!!
+* 
+* IF YOU ARE USING OLD FUNCTIONS FROM THE LAST PROGRAM, MAKE SURE YOU CHECK THE COLUMN IDENTIFIER
+* 
+* For example, when searching for a customer in the customer table
+* the old way was called customer_id, the new way is simply customerid, so if you try to access customer_id it will error out
+* 
+* 
+* 
+*/
+
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -249,6 +267,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 	if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
 	{
 		printf("Failed to add new CUSTOMER table entry!\n");
+		// Throw in a check for if the customer exists, and show them the customer already exists
 		return false;
 	}
 
