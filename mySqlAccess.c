@@ -10,8 +10,8 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "Marv3l-Xm3n"
-#define DEFAULTDATABASE "sakila"
+#define PASSWORD "cwickens01"
+#define DEFAULTDATABASE "bookstore"
 
 // Date ranges
 #define MONTHMIN 1
@@ -22,30 +22,45 @@
 #define YEARMAX 2024
 
 // Function prototypes
+// Tool Function Prototypes
 int GetIntegerFromUser();
-bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
-bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber);
-bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber);
-bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
-bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
-bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
-bool CheckRowResult(MYSQL_RES* resultToCheck);
-bool UpdateCustomerInformation(MYSQL* databaseObject);
-bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
-bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
 bool NoWhitespaceCheck(char* name);
-bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
 bool ValidateEmailAddress(char* address);
-bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
 void PromptForYesOrNo();
 void ClearCarriageReturn(char buffer[]);
 void GetDateFromUser(char dateString[]);
-bool CheckRentalHistory(MYSQL* databaseObject);
 
-// Function headers for operation functions
+// Database specific prototypes
+bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
+bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
+bool CheckRowResult(MYSQL_RES* resultToCheck);
+
+
+// Old trash, keep incase its useful
+bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber);
+bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
+bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
+bool CheckRentalHistory(MYSQL* databaseObject);
 bool AddNewRental(MYSQL* databaseObject);
+
+
+/*
+* SPECIFIC TABLE CRUD FUNCTION PROTOTYPES
+* PLEASE: Organize in CRUD as much as possible
+*/
+// Customer table function prototypes
+bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber);
+bool ReadCustomer(MYSQL* databaseObject);
+bool UpdateCustomerInformation(MYSQL* databaseObject);
+bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
+bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
+bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
+bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
 bool DeleteCustomerRecord(MYSQL* databaseObject);
 
+// BOOK table function prototypes
+
+// Order table function prototypes
 
 // Function to connect to the database
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase)
@@ -70,7 +85,8 @@ bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 	// Create the SQL query string and store it in the 'query' char array
 	sprintf(newQuery,
 		"SELECT * FROM customer\n"
-		"WHERE customer_id = %d; \n"
+		//"WHERE customer_id = %d; \n" // THis is the original line from the last program, NO underscore in the new customer ID
+		"WHERE customerid = %d; \n"
 		, customerIdNumber);
 
 	if (!SendQueryToDatabase(databaseObject, newQuery))
@@ -83,6 +99,11 @@ bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 }
 
 // Check if the staff exists
+/*
+*
+* CAN BE DELETED
+*
+*/
 bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -105,6 +126,11 @@ bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber)
 
 // RETURNS true/false based on return of SENDQUERYTODB
 // PART ONE AFTER getting CUSTOMER_ID
+/*
+*
+* CAN BE DELETED
+*
+*/
 bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -130,6 +156,11 @@ bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck)
 	return true;
 }
 
+/*
+*
+* CAN BE DELETED
+*
+*/
 bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -163,7 +194,7 @@ bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 	if (mysql_query(databaseObject, queryString) != 0)
 	{
 		printf("Failed on query!\n");
-		mysql_close(databaseObject);
+		//mysql_close(databaseObject); // I commented this out, to prevent any issues when accessing the database.
 		return false;
 	}
 	// The query was successful!
@@ -207,6 +238,84 @@ void ClearCarriageReturn(char buffer[])
 }
 
 
+/*
+* ----------------------------------------------------
+* CUSTOMER TABLE CRUD FUNCTIONS START HERE
+*/
+
+// I change the customer table to require a unique email address
+bool CreateCustomer(MYSQL* databaseObject)
+{
+	char createCustomerQuery[MAX_STRING_SIZE];
+	char email[] = "johndoe@example.com";
+	char firstName[] = "John";
+	char lastName[] = "Doe";
+	int addressId = 1;
+
+	sprintf(createCustomerQuery, "INSERT INTO Customer (Email, FirstName, LastName, AddressId) VALUES ('%s', '%s', '%s', %d);",
+		email, firstName, lastName, addressId);
+
+	if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
+	{
+		printf("Failed to add new rental entry!\n");
+		return false;
+	}
+
+	printf("Customer added!\n");
+	return true;
+}
+
+bool ReadCustomer(MYSQL* databaseObject)
+{
+	// This is the BASIS for reading the entire customer table
+	char readCustomerTableQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(readCustomerTableQuery, "SELECT * FROM customer\n");
+
+	if (!SendQueryToDatabase(databaseObject, readCustomerTableQuery))
+	{
+		// Query was NOT successful
+		printf("Customer read table unsuccessful! MAIN!");
+		return false;
+	}
+	else
+	{
+		// Store the result from the query
+		MYSQL_RES* customerTableReadResult = mysql_store_result(databaseObject);
+
+		// If the result is null, there was no result
+		if (customerTableReadResult == NULL)
+		{
+			// Print the SQL error
+			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+			return false;
+		}
+
+		// If the result was NO rows, the customer didnt exist
+		if (!CheckRowResult(customerTableReadResult))
+		{
+			printf("Nothing to read from customer table!!\n");
+			return false;
+		}
+		// The result has at LEAST ONE row, the customer DOES exist!
+		else
+		{
+			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
+			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+			while ((customerRow = mysql_fetch_row(customerTableReadResult)) != NULL)
+			{
+				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
+			}
+		}
+
+		// Free the result for the customer so memory isnt still consumed by it
+		mysql_free_result(customerTableReadResult);
+		return true;
+	}
+}
+
+// Update the customer information (well done, this looks great!)
 bool UpdateCustomerInformation(MYSQL* databaseObject)
 {
 	char yesOrNo[MAX_STRING_SIZE];						// temporarily changed to yes to make my life easier
@@ -224,7 +333,9 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 
 	switch (yesOrNo[0])		// we only care about the first index which should have Y or N
 	{
+		// Yes case
 	case 'Y':
+	case 'y': // added for lower case
 		printf("Choose the ID of the customer to update.\n");
 		customerToUpdate = GetIntegerFromUser();
 		if (!CustomerExistsQuery(databaseObject, customerToUpdate))
@@ -235,14 +346,27 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 		}
 		update = true;
 		break;
+
+		// No case
 	case 'N':
+	case 'n': // Added for lower case
 		printf("\nReturning to menu.\n");		// let the user know they are returning to our default menu
+
+		// This could potentially be replaced with a RETURN false
 		break;
+
+		// Default case
 	default:
 		printf("\nInvalid input.\n");		// if someone is stupid and can't read, this probably won't help
+
+
+		// This could also be replaced with a RETURN false
 		updateReturn = false;				// let's the main() know nothing was updated
 	}
-	
+
+
+	// if the above switches use RETURN, there is not need to check update here, since it will
+	// never get to this point if the user selects NO< or the default is used at any point
 	if (update)								// if update is true we go here
 	{
 		while (menu == 0)
@@ -349,6 +473,9 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 				// get an integer from the user
 				newAddressId = GetIntegerFromUser();
 				// if the integer is not between 1 and 605 inclusive, notify the user it wasn't valid and reload the menu
+
+
+				// Why only up to 605?
 				if (newAddressId < 1 || newAddressId > 605)
 				{
 					printf("\nThe address ID was not valid.\n");
@@ -380,9 +507,97 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 		}
 	}
 
-	return updateReturn; 
+	return updateReturn;
 }
 
+// Delete a customer entry, requires checks in onlineOrder table for customerid
+bool DeleteCustomer(MYSQL* databaseObject)
+{
+	// Use the CustomerExistQuery to see if they exist
+
+	// Cannot delete customer if onlineOrder has that customerId in one of its entries
+	// Need to create a function to check the onlineOrder for the specific customerid
+}
+
+
+
+// MISC customer table functions
+// Read customer data based on customer ID
+// Return FALSE when the customer does NOT exist
+// Return TRUE when the customer DOES exists, AFTER printing out the customer details!
+bool SearchCustomerTableForId(MYSQL* databaseObject)
+{
+	printf("Please enter a customer ID to check: ");
+	int customerIdToCheck = GetIntegerFromUser();
+	// CHECK IF THE CUSTOMER EXISTS FIRST
+	if (!CustomerExistsQuery(databaseObject, customerIdToCheck))
+	{
+		// The query was NOT valid!
+		printf("Failed to find customer in the database!\n");
+		return false;
+	}
+	// The query was valid
+	else
+	{
+		// Store the result from the query
+		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
+
+		// If the result is null, there was no result
+		if (customerResult == NULL)
+		{
+			// Print the SQL error
+			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+			return false;
+		}
+
+		// If the result was NO rows, the customer didnt exist
+		if (!CheckRowResult(customerResult))
+		{
+			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
+			return false;
+		}
+		// The result has at LEAST ONE row, the customer DOES exist!
+		else
+		{
+			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
+			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
+			{
+				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
+			}
+		}
+
+		// Free the result for the customer so memory isnt still consumed by it
+		mysql_free_result(customerResult);
+
+		// The customer read was successful, put a message saying something like 
+		// "Customer read successful, all results have been displayed!" where this was called
+		return true;
+
+	}
+}
+
+/*
+* END OF
+* CUSTOMER TABLE CRUD FUNCTIONS
+* -----------------------------------------------------
+*/
+
+
+
+
+/*
+* ----------------------------------------------------
+* BOOK TABLE CRUD FUNCTIONS START HERE
+*/
+
+
+
+/*
+* END OF
+* BOOK TABLE CRUD FUNCTIONS
+* -----------------------------------------------------
+*/
 
 bool NoWhitespaceCheck(char* name)
 {
@@ -414,7 +629,7 @@ bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* custo
 		return false;
 	}
 
-	return true; 
+	return true;
 }
 
 
@@ -433,7 +648,7 @@ bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* custom
 		return false;
 	}
 
-	return true; 
+	return true;
 }
 
 
@@ -474,7 +689,7 @@ bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_
 		return false;
 	}
 
-	return true; 
+	return true;
 }
 
 
@@ -496,7 +711,11 @@ bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address
 	return true;
 }
 
-
+/*
+*
+* CAN BE DELETED
+*
+*/
 bool AddNewRental(MYSQL* databaseObject)
 {
 	// Start: Get customer_id to add a new rental for
@@ -638,6 +857,15 @@ bool AddNewRental(MYSQL* databaseObject)
 
 
 // Option 2
+
+/*
+*
+* CAN BE REUSED at some level, some changes will need to be made
+* Must check if OnlineOrder is using customerID, cannot delete if being used in onlineOrder
+* Should it delete the address associated with the customer?
+*
+*
+*/
 bool DeleteCustomerRecord(MYSQL* databaseObject)
 {
 	// Prompt user to confirm deleting a customer and explain implications.
@@ -651,8 +879,8 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 	printf("Enter 'Y' to proceed or any input to cancel.\n");
 
 	// Get input from user
-	
-	char yesOrNo[MAX_STRING_SIZE] = {""};						
+
+	char yesOrNo[MAX_STRING_SIZE] = { "" };
 	fgets(yesOrNo, sizeof(yesOrNo), stdin);
 
 	// If user enters 'y', then continue with deletion logic. Otherwise, cancel deletion.
@@ -800,6 +1028,13 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 	return true;
 }
 
+
+/*
+*
+* I DONT THINK WE NEED THIS? I dont think we have any date stuff?
+* We need to use date when adding an order, but it will use datetime now() stuff in SQL for that
+*
+*/
 void GetDateFromUser(char dateString[])
 {
 	// Get year
@@ -833,6 +1068,12 @@ void GetDateFromUser(char dateString[])
 	sprintf(dateString, "%d-%02d-%02d", userYear, userMonth, userDay);
 }
 
+
+/*
+*
+* CAN BE DELETED
+*
+*/
 bool CheckRentalHistory(MYSQL* databaseObject)
 {
 	printf("Please enter a customer ID to check: ");
@@ -963,9 +1204,83 @@ int GetIntegerFromUser()
 }
 
 
-int main()
+
+int main2()
 {
 	// What we've said our project will do
+	// CRUD STATUS for Project:
+	// 
+	// CUSTOMER CRUD
+	// Completed: 
+	// Read (Good!)
+	// 
+	// Almost Completed:
+	// Update - do we want to update based on the address ID or the address information and update the ID using that?
+	//  - Example: If the customer wants to update their address, let them enter a new address, then check it against the table
+	//		- if it exists, grab the existing ID and update the customer
+	//		- otherwise: Create a new address entry and get that ID, then use it to update?
+	// 
+	// Not finished:
+	// Customer CREATE: We need to decide what part of the customer info will be used to check if the customer already exists
+	// email
+	// firstname
+	// lastname
+	// addressid(FK) - Should we list the addresses, or just get the user input, check if it exists, and if it does:
+	// Just add the addressId of the existing address without even telling them, since they wanted that address anyway?
+	// 
+	// Customer DELETE: Needs to be completed, and check onlineorder table to see if customerId is used for any order
+	// 
+	// BOOK CRUD
+	// NOTHING COMPLETED YET
+	// CREATE Requirements:
+	// title
+	// pagecount
+	// year
+	// price
+	// ISBN
+	// publisherID(FK) : We should probably display a list of publishers, so the user creating the book can enter a publisher ID to 
+	// attach to the BOOK creation
+	// 
+	// READ: Simple to implement
+	// 
+	// UPDATE Requirements:
+	// title
+	// pagecount
+	// year
+	// price
+	// ISBN
+	// publisherID(FK) : Do we let the user search by publisher NAME or publisher id?
+	// 
+	// DELETE Requirements:
+	// Checks need to be completed, a book cannot be deleted if that bookid exists in the following:
+	// AuthorBook
+	// OnlineOrder
+	// OrderProduct
+	// StoreInventory
+	// 
+	// 
+	// ORDER CRUD
+	// Nothing completed yet!
+	// We should probably have an order check the stock level in the inventory table to either
+	// let them order the book, or tell them the order will be fulfilled when the book is in stock for example?
+	// 
+	// CREATE Requirements: 
+	// quantity
+	// orderdate
+	// bookId(FK) - Again, do we show a list, or use the book name?
+	// customerId(FK) -  probably use customer email?
+	// 
+	// READ requirements: What? Just make the function lol
+	// 
+	// UPDATE Requirements:
+	// quantity
+	// orderdate
+	// bookId(FK) - Again, do we show a list, or use the book name?
+	// customerId(FK) -  probably use customer email?
+	// 
+	// DELETE Requirements:
+	// Check if orderProduct uses onlineOrderId, if the order ID is used somewhere there, it cannot be deleted
+	// 
 	// 
 	// Add a customer
 	// add a book
@@ -979,7 +1294,7 @@ int main()
 	// delete a customer
 	// delete a book
 	// delete an order
-	// Ability to reconfigure connection settingsand change IP address of MySQL server (I think wickens knows what this is...)
+	// Ability to reconfigure connection settings and change IP address of MySQL server (I think wickens knows what this is...)
 	// Ability to access a HELP page
 	// Ability to save user’s credentials to access the project
 
@@ -992,7 +1307,7 @@ int main()
 	// - first we check if there's any login information in the sql
 	// - if it exists, we ask for a login and validate that what the user enters matches what we have
 	// - otherwise, we ask the user to create a new login and we save that in the sql
-	
+
 	// 2) First menu
 	// - This menu should be used to break down the options into their own menus. An example is below:
 	// - 1) I want to do a process involving customers!
@@ -1000,7 +1315,7 @@ int main()
 	// - 3) I want to do a process involving orders!
 	// - 4) I need help!!!
 	// - 5) I need to change my login credentials!
-	
+
 	// 3) Sub menus
 	// - these menus are the sub menus of the options above
 	// 
@@ -1126,15 +1441,15 @@ int main()
 
 		switch (menuItem)
 		{
-		/*	To create a new rental record enter 1. Enter a customer id that's valid such as 20. This will get you the customer
-		*	SHARON ROBINSON. Enter the movie inventory_id such as 20. This will get you a movie called AMELIE HELLFIGHTERS and 
-		*	it is available for rent. Entering the staff_id as 1 will find the staff member Mike Hillyer. This will get be
-		*	a successful rental entry.
-		* 
-		*	Entering any information that doesn't exist will not add a new rental entry. For example, entering the value 1000 for
-		*	for customer_id will tell the user that that customer Id doesn't exist, so the rental entry can't be added.
-		*/
-		
+			/*	To create a new rental record enter 1. Enter a customer id that's valid such as 20. This will get you the customer
+			*	SHARON ROBINSON. Enter the movie inventory_id such as 20. This will get you a movie called AMELIE HELLFIGHTERS and
+			*	it is available for rent. Entering the staff_id as 1 will find the staff member Mike Hillyer. This will get be
+			*	a successful rental entry.
+			*
+			*	Entering any information that doesn't exist will not add a new rental entry. For example, entering the value 1000 for
+			*	for customer_id will tell the user that that customer Id doesn't exist, so the rental entry can't be added.
+			*/
+
 		case 1:
 			printf("\nAdd new rental transaction - Selected item #%d\n", menuItem);
 			if (!AddNewRental(databaseObject))
@@ -1148,36 +1463,36 @@ int main()
 
 			break;
 
-		/*	To update a customer's information enter 2. Enter Y to confirm you want to update a customer's information. Entering
-		*	a N will return you to the menu. After entering Y, user is prompted to enter the ID of the customer they want to 
-		*	update. Entering characters will tell the user it's an invalid entry and to try again.In this example, we are going to 
-		*	input 20, which is the customer SHARON ROBINSON. User is then prompted to select an option they'd like to update, 
-		*   which is detailed below.
-		*
-		*	Choose to update First Name by inputting 1. When inputting a name, any whitespace will cause the user to go back to
-		*	choosing an update option and alert them to not include white space. Inputting a first name such as Lily will update
-		*	the name from SHARON to Lily. The user is then returned to the main menu.
-		* 
-		*	Choose to update Last Name by inputting 2. The process for this option is the same as the First Name option, except
-		*	the last name of the customer is updated. If we input Jones, the last name updates from ROBINSON to Jones.
-		* 
-		*	Choose Email by inputting 3. If we input jjones@mail.com, the email updates from SHARON.ROBINSON@sakilacustomer.org
-		*	to jjones@mail.com. The email input must include an '@' symbol and end in '.com'. Failure to follow this format will
-		*	send an invalid entry message to the user and return them to the update menu. For example, inputting '5', 'mail.com',
-		*	or 'jones@com' will trigger this response.
-		* 
-		*	Choose Address by inputting 4. If we input 10, the address updates from 24 to 10. The inputted id must be between 1 
-		*	and 605 since those are the available addresses. So inputting any characters such as 'address' or 'd' will notify
-		*	user it's invalid and allow them to re-enter another input. Inputting integers out of the range such as '0' or '606'
-		*	will inform them the ID is invalid and return them to the update menu.
-		* 
-		*	Choose Return to main menu by inputting 5. This option returns the user to the main menu and alerts them they didn't
-		*	update customer information.
-		* 
-		*	Inputting a character such as 'd' or 'menu' will alert the user it's an invalid entry and to try again. Inputting an
-		*	integer that isn't listed as an option such as '0' or '6' will alert the user to choose one of the listed options and
-		*	allow them to input a valid integer.
-		*/	
+			/*	To update a customer's information enter 2. Enter Y to confirm you want to update a customer's information. Entering
+			*	a N will return you to the menu. After entering Y, user is prompted to enter the ID of the customer they want to
+			*	update. Entering characters will tell the user it's an invalid entry and to try again.In this example, we are going to
+			*	input 20, which is the customer SHARON ROBINSON. User is then prompted to select an option they'd like to update,
+			*   which is detailed below.
+			*
+			*	Choose to update First Name by inputting 1. When inputting a name, any whitespace will cause the user to go back to
+			*	choosing an update option and alert them to not include white space. Inputting a first name such as Lily will update
+			*	the name from SHARON to Lily. The user is then returned to the main menu.
+			*
+			*	Choose to update Last Name by inputting 2. The process for this option is the same as the First Name option, except
+			*	the last name of the customer is updated. If we input Jones, the last name updates from ROBINSON to Jones.
+			*
+			*	Choose Email by inputting 3. If we input jjones@mail.com, the email updates from SHARON.ROBINSON@sakilacustomer.org
+			*	to jjones@mail.com. The email input must include an '@' symbol and end in '.com'. Failure to follow this format will
+			*	send an invalid entry message to the user and return them to the update menu. For example, inputting '5', 'mail.com',
+			*	or 'jones@com' will trigger this response.
+			*
+			*	Choose Address by inputting 4. If we input 10, the address updates from 24 to 10. The inputted id must be between 1
+			*	and 605 since those are the available addresses. So inputting any characters such as 'address' or 'd' will notify
+			*	user it's invalid and allow them to re-enter another input. Inputting integers out of the range such as '0' or '606'
+			*	will inform them the ID is invalid and return them to the update menu.
+			*
+			*	Choose Return to main menu by inputting 5. This option returns the user to the main menu and alerts them they didn't
+			*	update customer information.
+			*
+			*	Inputting a character such as 'd' or 'menu' will alert the user it's an invalid entry and to try again. Inputting an
+			*	integer that isn't listed as an option such as '0' or '6' will alert the user to choose one of the listed options and
+			*	allow them to input a valid integer.
+			*/
 
 
 		case 2:
@@ -1192,42 +1507,42 @@ int main()
 			}
 			break;
 
-		/*	To read a customer's rental history, input 3. Below are the following inputs:
-		* 
-		*	Enter a customer Id: input 21 to find the records of the customer MICHELLE CLARK. Inputting a customer ID that 
-		*	doesn't exist such 1000 will alert the user the ID doesn't exist and returns the user to the main menu.
-		* 
-		*	Enter a starting date range: input 1900. Inputting characters such as 'd' or 'date' will alert the user it's invalid
-		*	and to enter another input. Inputting an integer out of range such as '0' or '3000' will alert the user to enter an
-		*	integer within range.
-		* 
-		*	Enter a starting month: input 1. Error messages are given same as above if characters are inputted or integers out
-		*	of range are inputted.
-		* 
-		*	Enter a day: input 1. Error messages are given same as above if characters are inputted or integers out of range 
-		*	are inputted.
-		*	
-		*	The starting date is 1900-01-01. Now we do the ending date which follows the same process as choosing the starting
-		*	date.
-		*	
-		*	For the ending date range, select the year to be 2024, the month to be 12, and the day to be 31. This will give an
-		*	ending date of 2024-12-31.
-		* 
-		*	The rental history of MICHELLE CLARK between these two dates is now visible to the user. Some examples of what you
-		*	should see are shown below:
-		*	
-		*	Customer Name: MICHELLE CLARK
-		*	Movie Title: DWARFS ALTER
-		*	Rental Date: 2006-02-14 15:16:03
-		*	Return Date: (null)
-		* 
-		*	Customer Name: MICHELLE CLARK
-		*	Movie Title: BREAKING HOME
-		*	Rental Date: 2005-05-26 15:42:20
-		*	Return Date: 2005-05-31 13:21:20
-		* 
-		*	The user is now returned to the main menu.
-		*/
+			/*	To read a customer's rental history, input 3. Below are the following inputs:
+			*
+			*	Enter a customer Id: input 21 to find the records of the customer MICHELLE CLARK. Inputting a customer ID that
+			*	doesn't exist such 1000 will alert the user the ID doesn't exist and returns the user to the main menu.
+			*
+			*	Enter a starting date range: input 1900. Inputting characters such as 'd' or 'date' will alert the user it's invalid
+			*	and to enter another input. Inputting an integer out of range such as '0' or '3000' will alert the user to enter an
+			*	integer within range.
+			*
+			*	Enter a starting month: input 1. Error messages are given same as above if characters are inputted or integers out
+			*	of range are inputted.
+			*
+			*	Enter a day: input 1. Error messages are given same as above if characters are inputted or integers out of range
+			*	are inputted.
+			*
+			*	The starting date is 1900-01-01. Now we do the ending date which follows the same process as choosing the starting
+			*	date.
+			*
+			*	For the ending date range, select the year to be 2024, the month to be 12, and the day to be 31. This will give an
+			*	ending date of 2024-12-31.
+			*
+			*	The rental history of MICHELLE CLARK between these two dates is now visible to the user. Some examples of what you
+			*	should see are shown below:
+			*
+			*	Customer Name: MICHELLE CLARK
+			*	Movie Title: DWARFS ALTER
+			*	Rental Date: 2006-02-14 15:16:03
+			*	Return Date: (null)
+			*
+			*	Customer Name: MICHELLE CLARK
+			*	Movie Title: BREAKING HOME
+			*	Rental Date: 2005-05-26 15:42:20
+			*	Return Date: 2005-05-31 13:21:20
+			*
+			*	The user is now returned to the main menu.
+			*/
 
 		case 3:
 			printf("Complex Query - Viewing Rental History with Filters - Selected item #%d\n", menuItem);
@@ -1243,21 +1558,21 @@ int main()
 			break;
 
 
-		/*	To delete a customer, input 4. Below are the following inputs:
-		* 
-		*	User is shown the effects of deleting a customer and asked if they want to proceed. Input 'Y' to proceed with
-		*	deletion. If any other input is inputted, the user is returned to the main menu.
-		* 
-		*	Enter customer ID: input 25. Customer is DEBORAH WALKER. This customer has no outstanding rental, so they can be
-		*	deleted. The user is shown the deletion process is going forward with the customer's rental, payment, customer info,
-		*	and customer address is deleted. The deletion process is concluded and the user is returned to the main menu.
-		* 
-		*	Enter customer ID: input 22. Customer is LAURA RODRIGUEZ. This customer has an outstanding rental, so they can't be 
-		*	deleted. The user is informed of this and the deletion process is cancelled.
-		* 
-		*	If user inputs an id that doesn't exist such as '1000', the user is told the customer doesn't exist and the deletion
-		*	process is cancelled and they are returned to the main menu.
-		*/
+			/*	To delete a customer, input 4. Below are the following inputs:
+			*
+			*	User is shown the effects of deleting a customer and asked if they want to proceed. Input 'Y' to proceed with
+			*	deletion. If any other input is inputted, the user is returned to the main menu.
+			*
+			*	Enter customer ID: input 25. Customer is DEBORAH WALKER. This customer has no outstanding rental, so they can be
+			*	deleted. The user is shown the deletion process is going forward with the customer's rental, payment, customer info,
+			*	and customer address is deleted. The deletion process is concluded and the user is returned to the main menu.
+			*
+			*	Enter customer ID: input 22. Customer is LAURA RODRIGUEZ. This customer has an outstanding rental, so they can't be
+			*	deleted. The user is informed of this and the deletion process is cancelled.
+			*
+			*	If user inputs an id that doesn't exist such as '1000', the user is told the customer doesn't exist and the deletion
+			*	process is cancelled and they are returned to the main menu.
+			*/
 
 		case 4:
 			printf("\nDeleting a Customer Record - Selected item #%d\n", menuItem);
@@ -1271,8 +1586,8 @@ int main()
 			}
 			break;
 
-		// To exit program, input 5. This exits the loop, which exits the program. If user inputs anything else aside from the
-		// availble menu options, they are told it's invalid and to choose a valid menu option.
+			// To exit program, input 5. This exits the loop, which exits the program. If user inputs anything else aside from the
+			// availble menu options, they are told it's invalid and to choose a valid menu option.
 		case 5:
 			printf("EXIT: Selected item #%d\n", menuItem);
 			exitProgram = 1;
@@ -1289,4 +1604,83 @@ int main()
 	mysql_close(databaseObject);
 
 	return EXIT_SUCCESS;
+}
+
+int main()
+{
+
+	// 1) initialize a database connection objects
+	MYSQL* databaseObject = mysql_init(NULL);
+	if (databaseObject == NULL) // If the object is NULL, it didnt work.
+	{
+		printf("Error! DB is null!");
+		return EXIT_FAILURE;
+
+		/*
+		*
+		* THIS CLOSE MUST BE PUT INTO THE EXIT PATH OF THE SWITCH STATEMENT! THE DB MUST BE CLOSED!
+		*/
+
+		mysql_close(databaseObject);
+	}
+
+	if (ConnectToDatabase(databaseObject, SERVER, USERNAME, PASSWORD, DEFAULTDATABASE))
+	{
+		printf("Connected to database: \"%s\"!\n\n", DEFAULTDATABASE);
+	}
+	else
+	{
+		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULTDATABASE);
+		return EXIT_FAILURE;
+		// This is where the program goes to die, instead of the switch.
+	}
+
+
+	// CODE GOES HERE
+	// Customer CREATE testing
+
+
+	char createCustomerQuery[MAX_STRING_SIZE];
+	char email[] = "johndoe@example.com";
+	char firstName[] = "John";
+	char lastName[] = "Doe";
+	int addressId = 1;
+
+	sprintf(createCustomerQuery, "INSERT INTO Customer (Email, FirstName, LastName, AddressId) VALUES ('%s', '%s', '%s', %d);",
+		email, firstName, lastName, addressId);
+
+	if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
+	{
+		printf("Failed to add new rental entry!\n");
+
+	}
+	else
+	{
+		printf("Customer added!\n");
+	}
+
+
+	// CUSTOMER table READ
+	if (!ReadCustomer(databaseObject))
+	{
+		printf("failed to read customer - MAIN!!\n");
+	}
+	else
+	{
+		printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
+	}
+
+
+
+	// CODE STOPS HERE
+
+
+
+
+	// NECESSARY AT END
+	// Close the connection to the DB
+	mysql_close(databaseObject);
+
+	return EXIT_SUCCESS;
+
 }
