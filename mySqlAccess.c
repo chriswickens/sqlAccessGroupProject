@@ -582,6 +582,98 @@ bool SearchCustomerTableForId(MYSQL* databaseObject)
 	}
 }
 
+bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET first_name = TRIM(' ' FROM '%s')\n"
+		"WHERE customer_id = %d\n", customer_name, customer_id);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* customer_lastName)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET last_name = TRIM(' ' FROM '%s')\n"
+		"WHERE customer_id = %d", customer_lastName, customer_id);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+bool ValidateEmailAddress(char* address)
+{
+	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
+	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
+	char* dotCom = NULL;							// pointer used for strstr function
+	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
+	char* pointer = NULL;							// pointer used for strchr function
+
+	pointer = strchr(address, ch);					// searches the user input email address for the '@'
+	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
+
+	// if either pointer is null, aka it did not find the occurrence of those requirements
+	if (pointer == NULL || dotCom == NULL)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET email = '%s'\n"
+		"WHERE customer_id = %d", customer_email, customer_id);
+
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET address_id = %d\n"
+		"WHERE customer_id = %d", address_id, customer_id);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
 /*
 * END OF
 * CUSTOMER TABLE CRUD FUNCTIONS
@@ -758,102 +850,6 @@ bool NoWhitespaceCheck(char* name)
 }
 
 
-bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE customer\n"
-		"SET first_name = TRIM(' ' FROM '%s')\n"
-		"WHERE customer_id = %d\n", customer_name, customer_id);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-
-bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* customer_lastName)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE customer\n"
-		"SET last_name = TRIM(' ' FROM '%s')\n"
-		"WHERE customer_id = %d", customer_lastName, customer_id);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-
-bool ValidateEmailAddress(char* address)
-{
-	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
-	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
-	char* dotCom = NULL;							// pointer used for strstr function
-	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
-	char* pointer = NULL;							// pointer used for strchr function
-
-	pointer = strchr(address, ch);					// searches the user input email address for the '@'
-	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
-
-	// if either pointer is null, aka it did not find the occurrence of those requirements
-	if (pointer == NULL || dotCom == NULL)
-	{
-		return false;
-	}
-
-	return true;
-}
-
-
-bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE customer\n"
-		"SET email = '%s'\n"
-		"WHERE customer_id = %d", customer_email, customer_id);
-
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-
-bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE customer\n"
-		"SET address_id = %d\n"
-		"WHERE customer_id = %d", address_id, customer_id);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
 
 /*
 *
