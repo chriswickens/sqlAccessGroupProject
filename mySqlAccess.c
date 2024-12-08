@@ -57,32 +57,134 @@ bool CheckRowResult(MYSQL_RES* resultToCheck);
 bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber);
 bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
 bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
-bool CheckRentalHistory(MYSQL* databaseObject);
+//bool CheckRentalHistory(MYSQL* databaseObject);
 bool AddNewRental(MYSQL* databaseObject);
 
 /*
-* SPECIFIC TABLE CRUD FUNCTION PROTOTYPES
-* PLEASE: Organize in CRUD as much as possible
+* TOOL FUNCTIONS START
 */
-// Customer table function prototypes
-bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber);
-bool ReadCustomer(MYSQL* databaseObject);
-bool UpdateCustomerInformation(MYSQL* databaseObject);
-bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
-bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
-bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
-bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
-bool DeleteCustomerRecord(MYSQL* databaseObject);
 
-// BOOK table function prototypes
-bool ReadBookTable(MYSQL* databaseObject);
+int GetIntegerFromUser()
+{
+	char userInput[MAX_STRING_SIZE] = { 0 };
+	int inputAsInt = 0;
+	fgets(userInput, MAX_STRING_SIZE, stdin);
+	ClearCarriageReturn(userInput);
 
-// Order table function prototypes
-bool ReadOrderTable(MYSQL* databaseObject);
+	while (sscanf(userInput, "%i", &inputAsInt) != 1 || inputAsInt < 0)
+	{
+		printf("Invalid entry, try again: ");
+		fgets(userInput, MAX_STRING_SIZE, stdin);
+	}
+
+	return inputAsInt;
+}
+
+bool NoWhitespaceCheck(char* name)
+{
+	int asciiValue = ' ';								// character we are searching for
+	char* pointer = NULL;
+
+	pointer = strchr(name, asciiValue);					// searches the user input email address for the ' '
+	if (pointer != NULL)								// if the pointer find a ' ' character return false
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool ValidateEmailAddress(char* address)
+{
+	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
+	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
+	char* dotCom = NULL;							// pointer used for strstr function
+	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
+	char* pointer = NULL;							// pointer used for strchr function
+
+	pointer = strchr(address, ch);					// searches the user input email address for the '@'
+	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
+
+	// if either pointer is null, aka it did not find the occurrence of those requirements
+	if (pointer == NULL || dotCom == NULL)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void PromptForYesOrNo()
+{
+	char input;
+
+	printf("Type Y or N: ");
+	input = getchar();
+
+	// Clear any extra characters from the input buffer
+	while (getchar() != '\n');
+
+	// The function does nothing with the input and returns nothing
+}
+
+// Remove carriage return for when the user is entering a string
+void ClearCarriageReturn(char buffer[])
+{
+	char* whereCR = strchr(buffer, '\n');
+	if (whereCR != NULL)
+	{
+		*whereCR = '\0';
+	}
+}
+
+/*
+*
+* I DONT THINK WE NEED THIS? I dont think we have any date stuff?
+* We need to use date when adding an order, but it will use datetime now() stuff in SQL for that
+*
+*/
+void GetDateFromUser(char dateString[])
+{
+	// Get year
+	printf("Enter the year: ");
+	int userYear = 0;
+	while (userYear < YEARMIN || userYear > YEARMAX)
+	{
+		printf("Please enter a year between %d and %d: ", YEARMIN, YEARMAX);
+		userYear = GetIntegerFromUser();
+	}
+
+	// Get month
+	printf("Enter the month: ");
+	int userMonth = 0;
+	while (userMonth < MONTHMIN || userMonth > MONTHMAX)
+	{
+		printf("Please enter a month between %d and %d: ", MONTHMIN, MONTHMAX);
+		userMonth = GetIntegerFromUser();
+	}
+
+	// Get day
+	printf("Enter the day: ");
+	int userDay = 0;
+	while (userDay < DAYMIN || userDay > DAYMAX)
+	{
+		printf("Please enter a day between %d and %d: ", DAYMIN, DAYMAX);
+		userDay = GetIntegerFromUser();
+	}
+
+	// Format the date into the provided buffer
+	sprintf(dateString, "%d-%02d-%02d", userYear, userMonth, userDay);
+}
+
+/*
+* TOOL FUNCTIONS END
+*/
+
 
 /*
 * DATABASE FUNCTIONS START
 */
+
 // Function to connect to the database
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase)
 {
@@ -128,6 +230,29 @@ bool CheckRowResult(MYSQL_RES* resultToCheck)
 /*
 * DATABASE FUNCTIONS END
 */
+
+
+/*
+* SPECIFIC TABLE CRUD FUNCTION PROTOTYPES
+* PLEASE: Organize in CRUD as much as possible
+*/
+// Customer table function prototypes
+bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber);
+bool ReadCustomer(MYSQL* databaseObject);
+bool UpdateCustomerInformation(MYSQL* databaseObject);
+bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
+bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
+bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
+bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
+bool DeleteCustomerRecord(MYSQL* databaseObject);
+
+// BOOK table function prototypes
+bool ReadBookTable(MYSQL* databaseObject);
+
+// Order table function prototypes
+bool ReadOrderTable(MYSQL* databaseObject);
+
+
 
 
 
@@ -222,28 +347,6 @@ bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id)
 
 
 
-void PromptForYesOrNo()
-{
-	char input;
-
-	printf("Type Y or N: ");
-	input = getchar();
-
-	// Clear any extra characters from the input buffer
-	while (getchar() != '\n');
-
-	// The function does nothing with the input and returns nothing
-}
-
-// Remove carriage return for when the user is entering a string
-void ClearCarriageReturn(char buffer[])
-{
-	char* whereCR = strchr(buffer, '\n');
-	if (whereCR != NULL)
-	{
-		*whereCR = '\0';
-	}
-}
 
 
 /*
@@ -625,25 +728,7 @@ bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* custom
 	return true;
 }
 
-bool ValidateEmailAddress(char* address)
-{
-	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
-	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
-	char* dotCom = NULL;							// pointer used for strstr function
-	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
-	char* pointer = NULL;							// pointer used for strchr function
 
-	pointer = strchr(address, ch);					// searches the user input email address for the '@'
-	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
-
-	// if either pointer is null, aka it did not find the occurrence of those requirements
-	if (pointer == NULL || dotCom == NULL)
-	{
-		return false;
-	}
-
-	return true;
-}
 
 bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email)
 {
@@ -863,19 +948,7 @@ bool ReadOrderTable(MYSQL* databaseObject)
 * -----------------------------------------------------
 */
 
-bool NoWhitespaceCheck(char* name)
-{
-	int asciiValue = ' ';								// character we are searching for
-	char* pointer = NULL;
 
-	pointer = strchr(name, asciiValue);					// searches the user input email address for the ' '
-	if (pointer != NULL)								// if the pointer find a ' ' character return false
-	{
-		return false;
-	}
-
-	return true;
-}
 
 
 
@@ -1197,44 +1270,7 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 }
 
 
-/*
-*
-* I DONT THINK WE NEED THIS? I dont think we have any date stuff?
-* We need to use date when adding an order, but it will use datetime now() stuff in SQL for that
-*
-*/
-void GetDateFromUser(char dateString[])
-{
-	// Get year
-	printf("Enter the year: ");
-	int userYear = 0;
-	while (userYear < YEARMIN || userYear > YEARMAX)
-	{
-		printf("Please enter a year between %d and %d: ", YEARMIN, YEARMAX);
-		userYear = GetIntegerFromUser();
-	}
 
-	// Get month
-	printf("Enter the month: ");
-	int userMonth = 0;
-	while (userMonth < MONTHMIN || userMonth > MONTHMAX)
-	{
-		printf("Please enter a month between %d and %d: ", MONTHMIN, MONTHMAX);
-		userMonth = GetIntegerFromUser();
-	}
-
-	// Get day
-	printf("Enter the day: ");
-	int userDay = 0;
-	while (userDay < DAYMIN || userDay > DAYMAX)
-	{
-		printf("Please enter a day between %d and %d: ", DAYMIN, DAYMAX);
-		userDay = GetIntegerFromUser();
-	}
-
-	// Format the date into the provided buffer
-	sprintf(dateString, "%d-%02d-%02d", userYear, userMonth, userDay);
-}
 
 
 /*
@@ -1356,22 +1392,6 @@ void GetDateFromUser(char dateString[])
 // CAN BE DELETED ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // CAN BE DELETED ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-int GetIntegerFromUser()
-{
-	char userInput[MAX_STRING_SIZE] = { 0 };
-	int inputAsInt = 0;
-	fgets(userInput, MAX_STRING_SIZE, stdin);
-	ClearCarriageReturn(userInput);
-
-	while (sscanf(userInput, "%i", &inputAsInt) != 1 || inputAsInt < 0)
-	{
-		printf("Invalid entry, try again: ");
-		fgets(userInput, MAX_STRING_SIZE, stdin);
-	}
-
-	return inputAsInt;
-}
 
 
 
