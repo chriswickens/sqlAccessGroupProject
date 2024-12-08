@@ -268,6 +268,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 	return true;
 }
 
+// Read function COMPLETED
 bool ReadCustomer(MYSQL* databaseObject)
 {
 	// This is the BASIS for reading the entire customer table
@@ -595,7 +596,7 @@ bool SearchCustomerTableForId(MYSQL* databaseObject)
 
 // Create function
 
-// Read function
+// Read function COMPLETED
 bool ReadBookTable(MYSQL* databaseObject)
 {
 	// This is the BASIS for reading the entire customer table
@@ -669,7 +670,7 @@ bool ReadBookTable(MYSQL* databaseObject)
 
 // Create function
 
-// Read function
+// Read function COMPLETED
 bool ReadOrderTable(MYSQL* databaseObject)
 {
 	// This is the BASIS for reading the entire customer table
