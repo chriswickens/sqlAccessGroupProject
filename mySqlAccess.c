@@ -185,6 +185,8 @@ void GetString(char* buffer)
 	{
 		printf("Error reading input.\n");
 	}
+	// Clear new lines
+	ClearCarriageReturn(buffer);
 }
 
 
