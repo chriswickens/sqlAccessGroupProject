@@ -257,7 +257,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 
 	if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
 	{
-		printf("Failed to add new rental entry!\n");
+		printf("Failed to add new CUSTOMER table entry!\n");
 		return false;
 	}
 
@@ -1606,6 +1606,10 @@ int main2()
 	return EXIT_SUCCESS;
 }
 
+
+
+// I just did this so we can test creating new functions while maintaining the old main()
+// We can just remove this later when it's time to compile everything into the cohesive program menu
 int main()
 {
 
@@ -1640,25 +1644,15 @@ int main()
 	// Customer CREATE testing
 
 
-	char createCustomerQuery[MAX_STRING_SIZE];
-	char email[] = "johndoe@example.com";
-	char firstName[] = "John";
-	char lastName[] = "Doe";
-	int addressId = 1;
-
-	sprintf(createCustomerQuery, "INSERT INTO Customer (Email, FirstName, LastName, AddressId) VALUES ('%s', '%s', '%s', %d);",
-		email, firstName, lastName, addressId);
-
-	if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
+	// CUSTOMER table CREATE
+	if (!CreateCustomer(databaseObject))
 	{
-		printf("Failed to add new CUSTOMER - MAIN!\n");
-
+		printf("Failed to create new customer! - MAIN\n");
 	}
 	else
 	{
-		printf("Customer added! - MAIN\n");
+		printf("Added new customer! - MAIN\n");
 	}
-
 
 	// CUSTOMER table READ
 	if (!ReadCustomer(databaseObject))
