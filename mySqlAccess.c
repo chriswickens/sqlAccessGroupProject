@@ -1,16 +1,16 @@
 /*
-* 
-* 
-* 
+*
+*
+*
 * NOTE TO EVERYONE!!!!
-* 
+*
 * IF YOU ARE USING OLD FUNCTIONS FROM THE LAST PROGRAM, MAKE SURE YOU CHECK THE COLUMN IDENTIFIER
-* 
+*
 * For example, when searching for a customer in the customer table
 * the old way was called customer_id, the new way is simply customerid, so if you try to access customer_id it will error out
-* 
-* 
-* 
+*
+*
+*
 */
 
 
@@ -372,21 +372,27 @@ bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id)
 // NOT DONE, this function needs to get a menu system put in to get data from the user to update with
 bool CreateCustomer(MYSQL* databaseObject)
 {
-	char createCustomerQuery[MAX_STRING_SIZE];
-	char email[] = "johndoe@example.com";
-	char firstName[] = "John";
-	char lastName[] = "Doe";
-	int addressId = 1;
+	char createCustomerQuery[MAX_STRING_SIZE]; // Storage for the query string
+	char email[MAX_STRING_SIZE] = { "\0" }; // Storage for email
+	char firstName[MAX_STRING_SIZE] = { "\0" }; // Storage for firstName
+	char lastName[MAX_STRING_SIZE] = { "\0" }; // Storage for lastName
+	int addressId = NULL; // Storage for addressId
 
-	sprintf(createCustomerQuery, "INSERT INTO Customer (Email, FirstName, LastName, AddressId) VALUES ('%s', '%s', '%s', %d);",
-		email, firstName, lastName, addressId);
+	// Ask for the email address first (to see if the customer exists)
+	printf("Please enter the customers EMAIL address: ");
+	GetString(email);
 
-	if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
-	{
-		printf("Failed to add new CUSTOMER table entry!\n");
-		// Throw in a check for if the customer exists, and show them the customer already exists
-		return false;
-	}
+	printf("\nEmail: %s\n", email);
+
+	//sprintf(createCustomerQuery, "INSERT INTO Customer (Email, FirstName, LastName, AddressId) VALUES ('%s', '%s', '%s', %d);",
+	//	email, firstName, lastName, addressId);
+
+	//if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
+	//{
+	//	printf("Failed to add new CUSTOMER table entry!\n");
+	//	// Throw in a check for if the customer exists, and show them the customer already exists
+	//	return false;
+	//}
 
 	printf("Customer added!\n");
 	return true;
@@ -1655,15 +1661,15 @@ int main2()
 			*/
 
 		case 1:
-			printf("\nAdd new rental transaction - Selected item #%d\n", menuItem);
-			if (!AddNewRental(databaseObject))
-			{
-				printf("Did not successfully add new rental entry!\n\n");
-			}
-			else
-			{
-				printf("Rental entry successful!!\n\n");
-			}
+			//printf("\nAdd new rental transaction - Selected item #%d\n", menuItem);
+			//if (!AddNewRental(databaseObject))
+			//{
+			//	printf("Did not successfully add new rental entry!\n\n");
+			//}
+			//else
+			//{
+			//	printf("Rental entry successful!!\n\n");
+			//}
 
 			break;
 
@@ -1700,15 +1706,15 @@ int main2()
 
 
 		case 2:
-			printf("\nUpdate Customer Information - Selected item #%d\n", menuItem);
-			if (!UpdateCustomerInformation(databaseObject))
-			{
-				printf("Did not update customer information!\n\n");
-			}
-			else
-			{
-				printf("Customer information successfully updated!\n\n");
-			}
+			//printf("\nUpdate Customer Information - Selected item #%d\n", menuItem);
+			//if (!UpdateCustomerInformation(databaseObject))
+			//{
+			//	printf("Did not update customer information!\n\n");
+			//}
+			//else
+			//{
+			//	printf("Customer information successfully updated!\n\n");
+			//}
 			break;
 
 			/*	To read a customer's rental history, input 3. Below are the following inputs:
@@ -1749,15 +1755,15 @@ int main2()
 			*/
 
 		case 3:
-			printf("Complex Query - Viewing Rental History with Filters - Selected item #%d\n", menuItem);
-			if (!CheckRentalHistory(databaseObject))
-			{
-				printf("Unsuccessful query for rental history, try again!\n\n");
-			}
-			else
-			{
-				printf("Rental history query successful!\n\n");
-			}
+			//printf("Complex Query - Viewing Rental History with Filters - Selected item #%d\n", menuItem);
+			//if (!CheckRentalHistory(databaseObject))
+			//{
+			//	printf("Unsuccessful query for rental history, try again!\n\n");
+			//}
+			//else
+			//{
+			//	printf("Rental history query successful!\n\n");
+			//}
 
 			break;
 
@@ -1779,15 +1785,15 @@ int main2()
 			*/
 
 		case 4:
-			printf("\nDeleting a Customer Record - Selected item #%d\n", menuItem);
-			if (!DeleteCustomerRecord(databaseObject))
-			{
-				printf("Did not delete customer!\n\n");
-			}
-			else
-			{
-				printf("Customer deletion successful!!\n\n");
-			}
+			//printf("\nDeleting a Customer Record - Selected item #%d\n", menuItem);
+			//if (!DeleteCustomerRecord(databaseObject))
+			//{
+			//	printf("Did not delete customer!\n\n");
+			//}
+			//else
+			//{
+			//	printf("Customer deletion successful!!\n\n");
+			//}
 			break;
 
 			// To exit program, input 5. This exits the loop, which exits the program. If user inputs anything else aside from the
