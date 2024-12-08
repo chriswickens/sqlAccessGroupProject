@@ -47,6 +47,7 @@ bool ValidateEmailAddress(char* address);
 void PromptForYesOrNo();
 void ClearCarriageReturn(char buffer[]);
 void GetDateFromUser(char dateString[]);
+void GetString(char* buffer);
 
 // Database specific prototypes
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
@@ -175,6 +176,17 @@ void GetDateFromUser(char dateString[])
 	// Format the date into the provided buffer
 	sprintf(dateString, "%d-%02d-%02d", userYear, userMonth, userDay);
 }
+
+void GetString(char* buffer)
+{
+	// Please use printf before calling this function to ask for specific information
+	// This only gets a string that's it, no printfs in here!
+	if (fgets(buffer, MAX_STRING_SIZE, stdin) == NULL)
+	{
+		printf("Error reading input.\n");
+	}
+}
+
 
 /*
 * TOOL FUNCTIONS END
