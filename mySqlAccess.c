@@ -44,10 +44,11 @@
 int GetIntegerFromUser();
 bool NoWhitespaceCheck(char* name);
 bool ValidateEmailAddress(char* address);
-void PromptForYesOrNo();
+char PromptForYesOrNo();
 void ClearCarriageReturn(char buffer[]);
 void GetDateFromUser(char dateString[]);
 void GetString(char* buffer);
+bool ValidatePostalCode(char* postalCode);
 
 // Database specific prototypes
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
@@ -60,6 +61,41 @@ bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
 bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
 //bool CheckRentalHistory(MYSQL* databaseObject);
 bool AddNewRental(MYSQL* databaseObject);
+
+/*
+* SPECIFIC TABLE CRUD FUNCTION PROTOTYPES
+* PLEASE: Organize in CRUD as much as possible
+*/
+// Customer table function prototypes
+bool CheckCustomerIdExistsQuery(MYSQL* databaseObject, int customerIdNumber);
+bool CheckCustomerEmailExistsQuery(MYSQL* databaseObject, char* customerEmail);
+bool SearchCustomerTableForEmail(MYSQL* databaseObject, char* emailToCheck);
+
+// Create
+bool CreateCustomer(MYSQL* databaseObject);
+// Read
+bool ReadCustomer(MYSQL* databaseObject);
+
+
+bool UpdateCustomerInformation(MYSQL* databaseObject);
+bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
+bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
+bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
+bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
+bool DeleteCustomerRecord(MYSQL* databaseObject);
+
+// BOOK table function prototypes
+bool ReadBookTable(MYSQL* databaseObject);
+
+// Order table function prototypes
+bool ReadOrderTable(MYSQL* databaseObject);
+
+/*
+* MISC Database Functions
+*/
+bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName);
+bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetName, char* addressId);
+
 
 /*
 * TOOL FUNCTIONS START
@@ -115,18 +151,32 @@ bool ValidateEmailAddress(char* address)
 	return true;
 }
 
-void PromptForYesOrNo()
+char PromptForYesOrNo()
 {
 	char input;
 
-	printf("Type Y or N: ");
-	input = getchar();
+	// Keep prompting until a valid input is entered
+	while (1)
+	{
+		printf("Type Y or N: ");
+		input = getchar();
 
-	// Clear any extra characters from the input buffer
-	while (getchar() != '\n');
+		// Clear any extra characters from the input buffer
+		while (getchar() != '\n');  // Remove the newline and any extra characters
 
-	// The function does nothing with the input and returns nothing
+		// Check if the input is a valid Y/y or N/n
+		if (input == 'Y' || input == 'y' || input == 'N' || input == 'n')
+		{
+			printf("You entered: %c\n", input);  // Optional: Display the valid input
+			break;  // Exit the loop if the input is valid
+		}
+		else
+		{
+			printf("Invalid input. Please enter Y, y, N, or n.\n");
+		}
+	}
 }
+
 
 // Remove carriage return for when the user is entering a string
 void ClearCarriageReturn(char buffer[])
@@ -189,6 +239,23 @@ void GetString(char* buffer)
 	ClearCarriageReturn(buffer);
 }
 
+bool ValidatePostalCode(char* postalCode)
+{
+	// Check all the stuff
+	if (strlen(postalCode) != 6 ||
+		!isalpha(postalCode[0]) ||
+		!isdigit(postalCode[1]) ||
+		!isalpha(postalCode[2]) ||
+		!isdigit(postalCode[3]) ||
+		!isalpha(postalCode[4]) ||
+		!isdigit(postalCode[5]))
+	{
+		return false;  // Invalid postal code
+	}
+
+	return true;  // Valid postal code
+}
+
 
 /*
 * TOOL FUNCTIONS END
@@ -244,30 +311,6 @@ bool CheckRowResult(MYSQL_RES* resultToCheck)
 /*
 * DATABASE FUNCTIONS END
 */
-
-
-/*
-* SPECIFIC TABLE CRUD FUNCTION PROTOTYPES
-* PLEASE: Organize in CRUD as much as possible
-*/
-// Customer table function prototypes
-bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber);
-bool ReadCustomer(MYSQL* databaseObject);
-bool UpdateCustomerInformation(MYSQL* databaseObject);
-bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
-bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
-bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
-bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
-bool DeleteCustomerRecord(MYSQL* databaseObject);
-
-// BOOK table function prototypes
-bool ReadBookTable(MYSQL* databaseObject);
-
-// Order table function prototypes
-bool ReadOrderTable(MYSQL* databaseObject);
-
-
-
 
 
 // Check if the staff exists
@@ -361,8 +404,6 @@ bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id)
 
 
 
-
-
 /*
 * ----------------------------------------------------
 * CUSTOMER TABLE CRUD FUNCTIONS START HERE
@@ -376,13 +417,87 @@ bool CreateCustomer(MYSQL* databaseObject)
 	char email[MAX_STRING_SIZE] = { "\0" }; // Storage for email
 	char firstName[MAX_STRING_SIZE] = { "\0" }; // Storage for firstName
 	char lastName[MAX_STRING_SIZE] = { "\0" }; // Storage for lastName
-	int addressId = NULL; // Storage for addressId
+	char addressId[MAX_STRING_SIZE] = { "\0" }; // Storage for addressId (If the user wishes to use the ID found from the address search
+
+	int streetNumber = NULL; // Storage for addressId
+	char streetName[MAX_STRING_SIZE] = { "\0" };
+	char postalCode[MAX_STRING_SIZE] = { "\0" };
 
 	// Ask for the email address first (to see if the customer exists)
-	printf("Please enter the customers EMAIL address: ");
-	GetString(email);
+	//printf("Please enter the customers EMAIL address: ");
+	//GetString(email);
+	//while (!ValidateEmailAddress(email))
+	//{
+	//	printf("Invalid email, please enter a valid email (me@home.com for example): ");
+	//	GetString(email);
+	//}
+	//// Check for the customer email here
+	//printf("\nEmail: %s\n", email);
 
-	printf("\nEmail: %s\n", email);
+	//// Check if the customer email does exist and return to main menu
+	//if (SearchCustomerTableForEmail(databaseObject, email))
+	//{
+	//	printf("CUSTOMER FOUND!");
+	//	printf("Cannot add customer, a customer with the email %s already exists!\nPress any key to return to main menu...", email);
+	//	return false;
+	//}
+
+	//// Get first name
+	//printf("Please enter the customers FIRST NAME: ");
+	//GetString(firstName);
+	//printf("\First name: %s\n", firstName);
+
+	//// Get last name
+	//printf("Please enter the customers LAST NAME: ");
+	//GetString(lastName);
+	//printf("\Last name: %s\n", lastName);
+
+	//printf("FULL Name: %s %s\n", firstName, lastName);
+
+	//// Ask for the customers street number
+	//printf("Please enter the customers house number: ");
+	//streetNumber = GetIntegerFromUser();
+
+	//printf("Street Number: %d\n", streetNumber);
+
+	//// Get street name
+	//printf("Please enter the customers LAST NAME: ");
+	//GetString(streetName);
+	//printf("Street name: %s\n", streetName);
+
+	// ALL GOOD ABOVE THIS
+	char tempStreet[MAX_STRING_SIZE] = "Main Street";
+	if (SearchAddressTable(databaseObject, 123, tempStreet, addressId))
+	{
+		char yesOrNo;
+		printf("\nAddress exists\n");
+		printf("Would you like to use the existing address ID of %s?\n", addressId);
+		yesOrNo = PromptForYesOrNo();
+		if (yesOrNo == 'N' || yesOrNo == 'n')
+		{
+			printf("You did not want to use the existing address, please try again, returning to main menu!\n");
+			return false;
+		}
+
+		else
+		{
+			// This is where code would go if they want to REUSE the address that exists!
+			// assign the existing address ID to the customer and exit
+		}
+
+	}
+
+	printf("\nAddress DONT exists Adding new address!\n");
+	
+
+	// Get the postal code from the user
+	printf("Please enter the customers POSTAL CODE (NO SPACES PLEASE EX: N6C3X7: ");
+	GetString(postalCode);
+	while (!ValidatePostalCode(postalCode))
+	{
+		printf("ERROR: Please enter the customers POSTAL CODE (NO SPACES PLEASE EX: N6C3X7: ");
+		GetString(postalCode);
+	}
 
 	//sprintf(createCustomerQuery, "INSERT INTO Customer (Email, FirstName, LastName, AddressId) VALUES ('%s', '%s', '%s', %d);",
 	//	email, firstName, lastName, addressId);
@@ -394,7 +509,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 	//	return false;
 	//}
 
-	printf("Customer added!\n");
+	//printf("Customer added!\n");
 	return true;
 }
 
@@ -471,7 +586,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	case 'y': // added for lower case
 		printf("Choose the ID of the customer to update.\n");
 		customerToUpdate = GetIntegerFromUser();
-		if (!CustomerExistsQuery(databaseObject, customerToUpdate))
+		if (!CheckCustomerIdExistsQuery(databaseObject, customerToUpdate))
 		{
 			printf("Failed to find customer.\n");
 			update = false;						// change this to true to access menu for options to update
@@ -665,7 +780,7 @@ bool SearchCustomerTableForId(MYSQL* databaseObject)
 	printf("Please enter a customer ID to check: ");
 	int customerIdToCheck = GetIntegerFromUser();
 	// CHECK IF THE CUSTOMER EXISTS FIRST
-	if (!CustomerExistsQuery(databaseObject, customerIdToCheck))
+	if (!CheckCustomerIdExistsQuery(databaseObject, customerIdToCheck))
 	{
 		// The query was NOT valid!
 		printf("Failed to find customer in the database!\n");
@@ -711,6 +826,58 @@ bool SearchCustomerTableForId(MYSQL* databaseObject)
 
 	}
 }
+
+bool SearchCustomerTableForEmail(MYSQL* databaseObject, char* emailToCheck)
+{
+	// CHECK IF THE CUSTOMER EXISTS FIRST
+	if (!CheckCustomerEmailExistsQuery(databaseObject, emailToCheck))
+	{
+		// The query was NOT valid!
+		printf("Failed to find customer email in the database!\n");
+		return false;
+	}
+	// The query was valid
+	else
+	{
+		// Store the result from the query
+		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
+
+		// If the result is null, there was no result
+		if (customerResult == NULL)
+		{
+			// Print the SQL error
+			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+			return false;
+		}
+
+		// If the result was NO rows, the customer didnt exist
+		if (!CheckRowResult(customerResult))
+		{
+			printf("Customer with email %s does not exist.\n", emailToCheck);
+			return false;
+		}
+
+		// The result has at LEAST ONE row, the customer DOES exist!
+		else
+		{
+			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
+			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
+			{
+				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
+			}
+		}
+
+		// Free the result for the customer so memory isnt still consumed by it
+		mysql_free_result(customerResult);
+
+		// The customer read was successful, put a message saying something like 
+		// "Customer read successful, all results have been displayed!" where this was called
+		return true;
+
+	}
+}
+
 
 bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name)
 {
@@ -787,8 +954,8 @@ bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address
 	return true;
 }
 
-// Function to see if customer exists
-bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber)
+// Function to see if customer exists based on ID
+bool CheckCustomerIdExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
 
@@ -798,6 +965,27 @@ bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 		//"WHERE customer_id = %d; \n" // THis is the original line from the last program, NO underscore in the new customer ID
 		"WHERE customerid = %d; \n"
 		, customerIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+// Function to see if customer exists based on EMAIL
+bool CheckCustomerEmailExistsQuery(MYSQL* databaseObject, char* customerEmail)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery,
+		"SELECT * FROM customer\n"
+		//"WHERE customer_id = %d; \n" // THis is the original line from the last program, NO underscore in the new customer ID
+		"WHERE email = \"%s\"; \n"
+		, customerEmail);
 
 	if (!SendQueryToDatabase(databaseObject, newQuery))
 	{
@@ -969,7 +1157,81 @@ bool ReadOrderTable(MYSQL* databaseObject)
 */
 
 
+/*
+*
+* MISC Table Functions
+*
+*/
+// Function to see if customer exists based on EMAIL
+bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName)
+{
+	char query[MAX_STRING_SIZE]; // Where the query will be stored.
 
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(query, "SELECT * FROM Address WHERE StreetNumber = \"%d\" AND StreetName = \"%s\";", streetNumber, streetName);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetName, char* addressId)
+{
+	// CHECK IF THE CUSTOMER EXISTS FIRST
+	if (!CheckAddressExistsQuery(databaseObject, streetNumber, streetName))
+	{
+		// The query was NOT valid!
+		printf("Invalid query\n");
+		return false;
+	}
+
+	// The query was valid
+
+		// Store the result from the query
+	MYSQL_RES* addressResult = mysql_store_result(databaseObject);
+
+	// If the result is null, there was no result
+	if (addressResult == NULL)
+	{
+		// Print the SQL error
+		printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+		return false;
+	}
+
+	// If the result was NO rows, the address does not exist
+	if (!CheckRowResult(addressResult))
+	{
+		printf("Customer with address %d %s does not exist.\n", streetNumber, streetName);
+		return false;
+	}
+
+	// The result has at LEAST ONE row, the address DOES exist!
+	else
+	{
+		MYSQL_ROW addressRow; // Get the rows using MYSQL_ROW for printing
+		// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+		while ((addressRow = mysql_fetch_row(addressResult)) != NULL)
+		{
+			printf("ADDRESS Records found: \n\tAddressId: %s\n\tStreetNumber: %s\n\tStreetName: %s\n\tPostalCode: %s\n\t", addressRow[0], addressRow[1], addressRow[2], addressRow[3]);
+			strcpy(addressId, addressRow[0]);
+			break;
+
+
+		}
+	}
+
+	// Free the result for the customer so memory isnt still consumed by it
+	mysql_free_result(addressResult);
+
+	// Found the address
+	return true;
+
+
+}
 
 
 /*
@@ -988,7 +1250,7 @@ bool AddNewRental(MYSQL* databaseObject)
 	int staffIdToCheck = GetIntegerFromUser(); // Get the staff ID from the user
 
 	// Check the customer ID
-	if (!CustomerExistsQuery(databaseObject, customerIdToCheck))
+	if (!CheckCustomerIdExistsQuery(databaseObject, customerIdToCheck))
 	{
 		// The query was NOT valid!
 		printf("Failed to find customer in the database!\n");
@@ -1153,7 +1415,7 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 		int customerIdToCheck = GetIntegerFromUser(); // The ID to check
 
 		// Check Customer Id
-		if (!CustomerExistsQuery(databaseObject, customerIdToCheck))
+		if (!CheckCustomerIdExistsQuery(databaseObject, customerIdToCheck))
 		{
 			// The query was NOT valid!
 			printf("Failed to find customer in the database!\n");
@@ -1861,40 +2123,40 @@ int main()
 	}
 	else
 	{
-		printf("Added new customer! - MAIN\n");
+		printf("Add new customer so far so good!! - MAIN\n");
 	}
 
-	// CUSTOMER table READ
-	if (!ReadCustomer(databaseObject))
-	{
-		printf("failed to read customer - MAIN!!\n");
-	}
-	else
-	{
-		printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
-	}
+	//// CUSTOMER table READ
+	//if (!ReadCustomer(databaseObject))
+	//{
+	//	printf("failed to read customer - MAIN!!\n");
+	//}
+	//else
+	//{
+	//	printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
+	//}
 
 
 
-	// BOOK TABLE READ
-	if (!ReadBookTable(databaseObject))
-	{
-		printf("failed to read BOOK - MAIN!!\n");
-	}
-	else
-	{
-		printf("FINISHED SUCCESSFUL READ OF BOOK!! - MAIN!!\n");
-	}
+	//// BOOK TABLE READ
+	//if (!ReadBookTable(databaseObject))
+	//{
+	//	printf("failed to read BOOK - MAIN!!\n");
+	//}
+	//else
+	//{
+	//	printf("FINISHED SUCCESSFUL READ OF BOOK!! - MAIN!!\n");
+	//}
 
-	// ORDER table read
-	if (!ReadOrderTable(databaseObject))
-	{
-		printf("failed to read ORDER - MAIN!!\n");
-	}
-	else
-	{
-		printf("FINISHED SUCCESSFUL READ OF ORDER!! - MAIN!!\n");
-	}
+	//// ORDER table read
+	//if (!ReadOrderTable(databaseObject))
+	//{
+	//	printf("failed to read ORDER - MAIN!!\n");
+	//}
+	//else
+	//{
+	//	printf("FINISHED SUCCESSFUL READ OF ORDER!! - MAIN!!\n");
+	//}
 
 	// CODE STOPS HERE
 
