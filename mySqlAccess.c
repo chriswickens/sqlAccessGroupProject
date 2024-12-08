@@ -1651,12 +1651,12 @@ int main()
 
 	if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
 	{
-		printf("Failed to add new rental entry!\n");
+		printf("Failed to add new CUSTOMER - MAIN!\n");
 
 	}
 	else
 	{
-		printf("Customer added!\n");
+		printf("Customer added! - MAIN\n");
 	}
 
 
