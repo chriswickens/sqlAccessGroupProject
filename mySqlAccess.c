@@ -35,14 +35,12 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
 
-
-// Old trash, keep incase its useful
+// Old trash, keep incase its useful DELETE LATER
 bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber);
 bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
 bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
 bool CheckRentalHistory(MYSQL* databaseObject);
 bool AddNewRental(MYSQL* databaseObject);
-
 
 /*
 * SPECIFIC TABLE CRUD FUNCTION PROTOTYPES
@@ -64,7 +62,9 @@ bool ReadBookTable(MYSQL* databaseObject);
 // Order table function prototypes
 bool ReadOrderTable(MYSQL* databaseObject);
 
-
+/*
+* DATABASE FUNCTIONS START
+*/
 // Function to connect to the database
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase)
 {
@@ -80,26 +80,38 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 	return true;
 }
 
-// Function to see if customer exists
-bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber)
+// Attempts to execute a query, and lets you know if it failed for some reason
+// returns true or false
+bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 {
-	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
-
-	// Create the SQL query string and store it in the 'query' char array
-	sprintf(newQuery,
-		"SELECT * FROM customer\n"
-		//"WHERE customer_id = %d; \n" // THis is the original line from the last program, NO underscore in the new customer ID
-		"WHERE customerid = %d; \n"
-		, customerIdNumber);
-
-	if (!SendQueryToDatabase(databaseObject, newQuery))
+	if (mysql_query(databaseObject, queryString) != 0)
 	{
-		// Query was NOT successful
+		printf("Failed on query!\n");
+		//mysql_close(databaseObject); // I commented this out, to prevent any issues when accessing the database.
 		return false;
 	}
-
+	// The query was successful!
 	return true;
 }
+
+// Checks to see if any rows were returned from a MYSQL_RESULT
+// returns true if there was at least 1  row returned
+bool CheckRowResult(MYSQL_RES* resultToCheck)
+{
+	if (mysql_num_rows(resultToCheck) == 0)
+	{
+		// No rows were found in the result
+		return false;
+	}
+	// 1 or more was found
+	return true;
+}
+
+/*
+* DATABASE FUNCTIONS END
+*/
+
+
 
 // Check if the staff exists
 /*
@@ -190,32 +202,7 @@ bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id)
 	return true;
 }
 
-// Attempts to execute a query, and lets you know if it failed for some reason
-// returns true or false
-bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
-{
-	if (mysql_query(databaseObject, queryString) != 0)
-	{
-		printf("Failed on query!\n");
-		//mysql_close(databaseObject); // I commented this out, to prevent any issues when accessing the database.
-		return false;
-	}
-	// The query was successful!
-	return true;
-}
 
-// Checks to see if any rows were returned from a MYSQL_RESULT
-// returns true if there was at least 1  row returned
-bool CheckRowResult(MYSQL_RES* resultToCheck)
-{
-	if (mysql_num_rows(resultToCheck) == 0)
-	{
-		// No rows were found in the result
-		return false;
-	}
-	// 1 or more was found
-	return true;
-}
 
 void PromptForYesOrNo()
 {
@@ -246,7 +233,8 @@ void ClearCarriageReturn(char buffer[])
 * CUSTOMER TABLE CRUD FUNCTIONS START HERE
 */
 
-// I change the customer table to require a unique email address
+// I changed the customer table to require a unique email address
+// NOT DONE, this function needs to get a menu system put in to get data from the user to update with
 bool CreateCustomer(MYSQL* databaseObject)
 {
 	char createCustomerQuery[MAX_STRING_SIZE];
@@ -667,6 +655,27 @@ bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address
 		"WHERE customer_id = %d", address_id, customer_id);
 
 	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+// Function to see if customer exists
+bool CustomerExistsQuery(MYSQL* databaseObject, int customerIdNumber)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery,
+		"SELECT * FROM customer\n"
+		//"WHERE customer_id = %d; \n" // THis is the original line from the last program, NO underscore in the new customer ID
+		"WHERE customerid = %d; \n"
+		, customerIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
 	{
 		// Query was NOT successful
 		return false;
