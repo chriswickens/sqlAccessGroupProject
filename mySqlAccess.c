@@ -59,8 +59,11 @@ bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address
 bool DeleteCustomerRecord(MYSQL* databaseObject);
 
 // BOOK table function prototypes
+bool ReadBookTable(MYSQL* databaseObject);
 
 // Order table function prototypes
+bool ReadOrderTable(MYSQL* databaseObject);
+
 
 // Function to connect to the database
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase)
@@ -276,43 +279,42 @@ bool ReadCustomer(MYSQL* databaseObject)
 	if (!SendQueryToDatabase(databaseObject, readCustomerTableQuery))
 	{
 		// Query was NOT successful
-		printf("Customer read table unsuccessful! MAIN!");
+		printf("Customer read table unsuccessful!");
 		return false;
 	}
+
+	// Store the result from the query
+	MYSQL_RES* customerTableReadResult = mysql_store_result(databaseObject);
+
+	// If the result is null, there was no result
+	if (customerTableReadResult == NULL)
+	{
+		// Print the SQL error
+		printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+		return false;
+	}
+
+	// If the result was NO rows, the customer didnt exist
+	if (!CheckRowResult(customerTableReadResult))
+	{
+		printf("Nothing to read from customer table!!\n");
+		return false;
+	}
+	// The result has at LEAST ONE row, the customer DOES exist!
 	else
 	{
-		// Store the result from the query
-		MYSQL_RES* customerTableReadResult = mysql_store_result(databaseObject);
-
-		// If the result is null, there was no result
-		if (customerTableReadResult == NULL)
+		MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
+		// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+		while ((customerRow = mysql_fetch_row(customerTableReadResult)) != NULL)
 		{
-			// Print the SQL error
-			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
-			return false;
+			printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
 		}
-
-		// If the result was NO rows, the customer didnt exist
-		if (!CheckRowResult(customerTableReadResult))
-		{
-			printf("Nothing to read from customer table!!\n");
-			return false;
-		}
-		// The result has at LEAST ONE row, the customer DOES exist!
-		else
-		{
-			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
-			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
-			while ((customerRow = mysql_fetch_row(customerTableReadResult)) != NULL)
-			{
-				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
-			}
-		}
-
-		// Free the result for the customer so memory isnt still consumed by it
-		mysql_free_result(customerTableReadResult);
-		return true;
 	}
+
+	// Free the result for the customer so memory isnt still consumed by it
+	mysql_free_result(customerTableReadResult);
+	return true;
+
 }
 
 // Update the customer information (well done, this looks great!)
@@ -519,9 +521,11 @@ bool DeleteCustomer(MYSQL* databaseObject)
 	// Need to create a function to check the onlineOrder for the specific customerid
 }
 
-
-
-// MISC customer table functions
+/*
+*
+* MISC CUSTOMER table functions
+*
+*/
 // Read customer data based on customer ID
 // Return FALSE when the customer does NOT exist
 // Return TRUE when the customer DOES exists, AFTER printing out the customer details!
@@ -584,18 +588,157 @@ bool SearchCustomerTableForId(MYSQL* databaseObject)
 */
 
 
-
-
 /*
 * ----------------------------------------------------
 * BOOK TABLE CRUD FUNCTIONS START HERE
 */
 
+// Create function
 
+// Read function
+bool ReadBookTable(MYSQL* databaseObject)
+{
+	// This is the BASIS for reading the entire customer table
+	char readBookTableQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(readBookTableQuery,
+		"SELECT * FROM book");
+
+
+	if (!SendQueryToDatabase(databaseObject, readBookTableQuery))
+	{
+		// Query was NOT successful
+		printf("BOOK read table unsuccessful!");
+		return false;
+	}
+	// Store the result from the query
+	MYSQL_RES* bookTableReadResult = mysql_store_result(databaseObject);
+
+	// If the result is null, there was no result
+	if (bookTableReadResult == NULL)
+	{
+		// Print the SQL error
+		printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+		return false;
+	}
+
+	// If the result was NO rows, the BOOK didnt exist
+	if (!CheckRowResult(bookTableReadResult))
+	{
+		printf("Nothing to read from BOOK table!!\n");
+		return false;
+	}
+	// The result has at LEAST ONE row, the customer DOES exist!
+	else
+	{
+		printf("----------- START READ FROM BOOK TABLE -----------\n");
+		MYSQL_ROW bookRow; // Get the rows using MYSQL_ROW for printing
+		// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+		while ((bookRow = mysql_fetch_row(bookTableReadResult)) != NULL)
+		{
+			printf("Bookid: %s\n\tTitle: %s\n\tPageCount: %s\n\tYear: %s\n\tPrice: $%s\n\tISBN: %s\n\tPublisherId: %s\n\n", bookRow[0], bookRow[1], bookRow[2], bookRow[3], bookRow[4], bookRow[5], bookRow[6]);
+		}
+	}
+	printf("----------- END READ FROM BOOK TABLE -----------\n");
+	// Free the result for the customer so memory isnt still consumed by it
+	mysql_free_result(bookTableReadResult);
+	return true;
+
+}
+
+// Update function
+
+// Delete function
+
+/*
+* MISC BOOK table functions
+*/
 
 /*
 * END OF
 * BOOK TABLE CRUD FUNCTIONS
+* -----------------------------------------------------
+*/
+
+
+/*
+* ----------------------------------------------------
+* ORDER TABLE CRUD FUNCTIONS START HERE
+*/
+
+// Create function
+
+// Read function
+bool ReadOrderTable(MYSQL* databaseObject)
+{
+	// This is the BASIS for reading the entire customer table
+	char readOrderTableQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(readOrderTableQuery,
+		"SELECT o.OnlineOrderId, o.Quantity, o.OrderDate, "
+		"CONCAT(c.FirstName, ' ', c.LastName) AS CustomerFullName, "
+		"CONCAT(a.StreetNumber, ' ', a.StreetName, ', ', a.PostalCode) AS CustomerAddress, "
+		"b.Title AS BookTitle "
+		"FROM OnlineOrder o "
+		"JOIN Customer c ON o.CustomerId = c.CustomerId "
+		"JOIN Address a ON c.AddressId = a.AddressId "
+		"JOIN Book b ON o.BookId = b.BookId;");
+
+
+	if (!SendQueryToDatabase(databaseObject, readOrderTableQuery))
+	{
+		// Query was NOT successful
+		printf("ORDER read table unsuccessful!");
+		return false;
+	}
+	// Store the result from the query
+	MYSQL_RES* orderTableReadResult = mysql_store_result(databaseObject);
+
+	// If the result is null, there was no result
+	if (orderTableReadResult == NULL)
+	{
+		// Print the SQL error
+		printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+		return false;
+	}
+
+	// If the result was NO rows, the customer didnt exist
+	if (!CheckRowResult(orderTableReadResult))
+	{
+		printf("Nothing to read from ORDER table!!\n");
+		return false;
+	}
+	// The result has at LEAST ONE row, the customer DOES exist!
+	else
+	{
+		printf("----------- START READ FROM ORDER TABLE -----------\n");
+		MYSQL_ROW orderRow; // Get the rows using MYSQL_ROW for printing
+		// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+		while ((orderRow = mysql_fetch_row(orderTableReadResult)) != NULL)
+		{
+			printf("Order ID: %s\n\tQuantity: %s\n\tOrderDate: %s\n\tCustomerName: %s\n\tCustomerAddress: %s\n\tBookTitle: %s\n\n", orderRow[0], orderRow[1], orderRow[2], orderRow[3], orderRow[4], orderRow[5]);
+		}
+	}
+	printf("----------- END READ FROM ORDER TABLE -----------\n");
+	// Free the result for the customer so memory isnt still consumed by it
+	mysql_free_result(orderTableReadResult);
+	return true;
+
+}
+
+// Update function
+
+// Delete function
+
+/*
+* MISC ORDER table functions
+*/
+
+/*
+* END OF
+* ORDER TABLE CRUD FUNCTIONS
 * -----------------------------------------------------
 */
 
@@ -1665,6 +1808,26 @@ int main()
 	}
 
 
+
+	// BOOK TABLE READ
+	if (!ReadBookTable(databaseObject))
+	{
+		printf("failed to read BOOK - MAIN!!\n");
+	}
+	else
+	{
+		printf("FINISHED SUCCESSFUL READ OF BOOK!! - MAIN!!\n");
+	}
+
+	// ORDER table read
+	if (!ReadOrderTable(databaseObject))
+	{
+		printf("failed to read ORDER - MAIN!!\n");
+	}
+	else
+	{
+		printf("FINISHED SUCCESSFUL READ OF ORDER!! - MAIN!!\n");
+	}
 
 	// CODE STOPS HERE
 
