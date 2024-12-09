@@ -27,11 +27,10 @@
 #define MAX_STRING_SIZE 500
 
 // Connection details
-#define SERVER "localhost"
-#define USERNAME "root"
-#define PASSWORD "Sah@-123"
-#define DEFAULTDATABASE "bookstore"
-
+#define DEFAULT_DATABASE_SERVER_ADDRESS "localhost"
+#define DEFAULT_DATABASE_USERNAME "root"
+#define DEFAULT_DATABASE_PASSWORD "Sah@-123"
+#define DEFAULT_DATABASE_NAME "bookstore"
 
 // Date ranges
 #define MONTHMIN 1
@@ -114,7 +113,6 @@ bool ReadBookTable(MYSQL* databaseObject);
 void deleteBookImplication(void);
 bool CheckBookIdExistsQuery(MYSQL* databaseObject, int bookIdNumber);
 bool DeleteBookRecord(MYSQL* databaseObject);
-// lksdfjkdsjfkildsjf
 
 
 /*
@@ -140,7 +138,7 @@ bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size)
 // UPDATE
 
 // DELETE
-
+bool DeleteOrderRecord(MYSQL* databaseObject);
 
 
 /*
@@ -1187,7 +1185,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 					}
 					
 					// add the new address
-					didItWork = AddNewAddress(databaseObject, streetNumber, streetName, postalCode);
+					didItWork = CreateNewAddress(databaseObject, streetNumber, streetName, postalCode);
 					// get the id for the new address
 					didItWork = SearchAddressTable(databaseObject, streetNumber, streetName, addressId);
 					// make it ASCII from string
@@ -2607,7 +2605,7 @@ bool DeleteOrderRecord(MYSQL* databaseObject)
 
 		// Delete OnlineOrder records
 		char deleteOnlineOrderQuery[MAX_STRING_SIZE];
-		sprintf(deleteOnlineOrderQuery, "DELETE FROM OnlineOrder WHERE OnlineOrderId = 1;", orderIdToCheck);
+		sprintf(deleteOnlineOrderQuery, "DELETE FROM OnlineOrder WHERE OnlineOrderId = %d;", orderIdToCheck);
 
 		if (!SendQueryToDatabase(databaseObject, deleteOnlineOrderQuery))
 		{
