@@ -29,7 +29,7 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "6741"
+#define PASSWORD "cwickens01"
 #define DEFAULTDATABASE "bookstore"
 
 
@@ -152,14 +152,30 @@ int GetIntegerFromUser()
 // Function to get a float input
 float GetFloatFromUser()
 {
-	float price;
-	while (scanf("%f", &price) != 1 || price < 0)
+	char userInput[MAX_STRING_SIZE] = { "\0" };
+	float price = 0.0f;
+
+	// Repeat until a valid float is entered
+	while (1)
 	{
-		printf("Invalid input. Please enter a positive value: ");
-		while (getchar() != '\n'); // Clear the input buffer
+		printf("Please enter a positive value: ");
+		fgets(userInput, MAX_STRING_SIZE, stdin);
+
+		// Remove the newline character that fgets may have added
+		ClearCarriageReturn(userInput);
+
+		// Try to convert the string to a float
+		if (sscanf(userInput, "%f", &price) == 1 && price >= 0)
+		{
+			return price;  // Valid float
+		}
+		else
+		{
+			printf("Invalid input. Please enter a positive value: \n");
+		}
 	}
-	return price;
 }
+
 
 // Function to get ISBN (13 digit unique book ID)
 // Function to get a 13-digit integer from the user
@@ -2724,14 +2740,14 @@ int main()
 	//}
 
 	// UPDATE CUSTOMER
-	if (!UpdateCustomerInformation(databaseObject))
-	{
-		printf("Failed to update customer information.\n");
-	}
-	else
-	{
-		printf("Customer information updated.\n");
-	}
+	//if (!UpdateCustomerInformation(databaseObject))
+	//{
+	//	printf("Failed to update customer information.\n");
+	//}
+	//else
+	//{
+	//	printf("Customer information updated.\n");
+	//}
 
 	// CREATE ORDER
 	//if (!CreateOrder(databaseObject))
