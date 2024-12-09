@@ -114,6 +114,7 @@ bool ReadBookTable(MYSQL* databaseObject);
 void deleteBookImplication(void);
 bool CheckBookIdExistsQuery(MYSQL* databaseObject, int bookIdNumber);
 bool DeleteBookRecord(MYSQL* databaseObject);
+// lksdfjkdsjfkildsjf
 
 
 /*
