@@ -135,18 +135,17 @@ bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size)
 
 int GetIntegerFromUser()
 {
-	char userInput[MAX_STRING_SIZE] = { 0 };
+	char userInput[MAX_STRING_SIZE] = { "\0" };
 	int inputAsInt = 0;
 	fgets(userInput, MAX_STRING_SIZE, stdin);
-	//ClearCarriageReturn(userInput);
 
-	while (sscanf(userInput, "%i", &inputAsInt) != 1 || inputAsInt < 0)
+	while (sscanf(userInput, "%i", &inputAsInt) != 1)
 	{
 		printf("Invalid entry, try again: ");
 		fgets(userInput, MAX_STRING_SIZE, stdin);
-
 	}
-	ClearCarriageReturn(userInput);
+
+	clearCarriageReturn(userInput);
 	return inputAsInt;
 }
 
@@ -280,10 +279,6 @@ void ClearCarriageReturn(char buffer[])
 	}
 }
 
-void ClearInputBuffer()
-{
-	while (getchar() != '\n' && getchar() != EOF);  // Clear until newline or EOF
-}
 
 /*
 *
