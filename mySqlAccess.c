@@ -1027,7 +1027,6 @@ bool UpdateCustomerAddressId(MYSQL* databaseObject, int customerId, int addressI
 	return true;
 }
 
-// Function to see if customer exists based on ID
 bool CheckCustomerIdExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -1048,7 +1047,6 @@ bool CheckCustomerIdExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 	return true;
 }
 
-// Function to see if customer exists based on EMAIL
 bool CheckCustomerEmailExistsQuery(MYSQL* databaseObject, char* customerEmail)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -1182,7 +1180,7 @@ bool CreateBookEntry(MYSQL* databaseObject)
 	return true;
 }
 
-// Read function COMPLETED
+// Read function
 bool ReadBookTable(MYSQL* databaseObject)
 {
 	// This is the BASIS for reading the entire customer table
@@ -1401,7 +1399,7 @@ bool CreateOrder(MYSQL* databaseObject)
 	return true;
 }
 
-// Read function COMPLETED
+// Read function
 bool ReadOrderTable(MYSQL* databaseObject)
 {
 	// This is the BASIS for reading the entire customer table
@@ -1498,7 +1496,6 @@ bool CreateNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName,
 	return true;
 }
 
-// Function to see if customer exists based on EMAIL
 bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName)
 {
 	char query[MAX_STRING_SIZE]; // Where the query will be stored.
