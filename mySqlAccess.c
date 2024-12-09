@@ -42,7 +42,7 @@
 // Do not remove these, used for final project
 #define YEARMIN 1900
 // YEARMAX can be changed to allow books to be added before their release date
-// This will accomidate pre-orders for example
+// This will accommodate pre-orders for example
 #define YEARMAX 2024
 #define MAX_DATABASE_TABLE_ROWS 999
 
@@ -56,13 +56,13 @@ bool NoWhitespaceCheck(char* name);
 bool ValidateEmailAddress(char* address);
 char PromptForYesOrNo();
 void ClearCarriageReturn(char buffer[]);
-void ClearInputBuffer();
 void GetDateFromUser(char dateString[]);
 void GetString(char* buffer);
 bool ValidatePostalCode(char* postalCode);
 
 // Database specific prototypes
-bool DatabaseLoginWithUserInput();
+bool DatabaseLoginWithUserInput(MYSQL* databaseObject);
+bool DatabaseLoginWithProgramDefaults(MYSQL* databaseObject);
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
@@ -76,27 +76,32 @@ bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
 
 /*
 * SPECIFIC TABLE CRUD FUNCTION PROTOTYPES
-* PLEASE: Organize in CRUD as much as possible
 */
-// Customer table function prototypes
+
+// CUSTOMER Table CRUD
+// Create
+bool CreateCustomer(MYSQL* databaseObject);
+
+// Read
+bool ReadCustomerTable(MYSQL* databaseObject);
 bool CheckCustomerIdExistsQuery(MYSQL* databaseObject, int customerIdNumber);
 bool CheckCustomerEmailExistsQuery(MYSQL* databaseObject, char* customerEmail);
 bool SearchCustomerTableForEmail(MYSQL* databaseObject, char* emailToCheck);
 
-// Create
-bool CreateCustomer(MYSQL* databaseObject);
-// Read
-bool ReadCustomer(MYSQL* databaseObject);
-
-
+// CUSTOMER table function prototypes
+// UPDATE
 bool UpdateCustomerInformation(MYSQL* databaseObject);
 bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
 bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
 bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
 bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
-bool DeleteCustomerRecord(MYSQL* databaseObject);
 
-// BOOK table function prototypes
+// Delete
+bool DeleteCustomerRecord(MYSQL* databaseObject);
+bool SearchCustomerTableById(MYSQL* databaseObject, int customerToUpdate);
+
+
+// BOOK table CRUD
 // CREATE
 bool CreateBookEntry(MYSQL* databaseObject);
 
@@ -117,18 +122,13 @@ bool DeleteBookRecord(MYSQL* databaseObject);
 bool CheckBookTableIsbnExists(MYSQL* databaseObject, long long isbnToCheck);
 
 
-// Order table function prototypes
-
+// Order table CRUD
 // CREATE
 bool CreateOrder(MYSQL* databaseObject);
+bool CreateNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, char* postalCode);
 
 // READ
 bool ReadOrderTable(MYSQL* databaseObject);
-
-/*
-* MISC Database Functions
-*/
-bool AddNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, char* postalCode);
 bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName);
 bool CheckBookIsbnExistsQuery(MYSQL* databaseObject, long long isbnNumber);
 bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetName, char* addressId);
@@ -136,11 +136,29 @@ bool ReadAndGetPublisherTable(MYSQL* databaseObject, int* publisherIds, int* siz
 bool ReadAndGetBookTable(MYSQL* databaseObject, int* bookIds, int* size);
 bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size);
 
+// UPDATE
+
+// DELETE
+
+
 
 /*
-* TOOL FUNCTIONS START
+* TOOL FUNCTIONS
 */
 
+// Get a string from the user
+void GetString(char* buffer)
+{
+	fgets(buffer, MAX_STRING_SIZE, stdin);
+	ClearCarriageReturn(buffer);
+	while (buffer[0] == '\n' || buffer[0] == '\0' || buffer[0] == ' ')
+	{
+		printf("Invalid input...try again.\n");
+		fgets(buffer, MAX_STRING_SIZE, stdin);
+	}
+}
+
+// Get an integer from the user
 int GetIntegerFromUser()
 {
 	char userInput[MAX_STRING_SIZE] = { "\0" };
@@ -184,9 +202,7 @@ float GetFloatFromUser()
 	}
 }
 
-
 // Function to get ISBN (13 digit unique book ID)
-// Function to get a 13-digit integer from the user
 long long int GetIsbnFromUser()
 {
 	char userInput[MAX_STRING_SIZE] = { "\0" };
@@ -221,7 +237,7 @@ long long int GetIsbnFromUser()
 	}
 }
 
-
+// Get a 4 digit year from the user
 int GetBookYearFromUser()
 {
 	int year;
@@ -233,6 +249,7 @@ int GetBookYearFromUser()
 	return year;
 }
 
+// Check for white space in a string
 bool NoWhitespaceCheck(char* name)
 {
 	int asciiValue = ' ';								// character we are searching for
@@ -247,26 +264,7 @@ bool NoWhitespaceCheck(char* name)
 	return true;
 }
 
-bool ValidateEmailAddress(char* address)
-{
-	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
-	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
-	char* dotCom = NULL;							// pointer used for strstr function
-	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
-	char* pointer = NULL;							// pointer used for strchr function
-
-	pointer = strchr(address, ch);					// searches the user input email address for the '@'
-	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
-
-	// if either pointer is null, aka it did not find the occurrence of those requirements
-	if (pointer == NULL || dotCom == NULL)
-	{
-		return false;
-	}
-
-	return true;
-}
-
+// Prompt for Y/N user choices
 char PromptForYesOrNo()
 {
 	char input;
@@ -278,7 +276,7 @@ char PromptForYesOrNo()
 		input = getchar();
 
 		// Clear any extra characters from the input buffer
-		while (getchar() != '\n');  // Remove the newline and any extra characters
+		ClearCarriageReturn(input);
 
 		// Check if the input is a valid Y/y or N/n
 		if (input == 'Y' || input == 'y' || input == 'N' || input == 'n')
@@ -303,6 +301,44 @@ void ClearCarriageReturn(char buffer[])
 	}
 }
 
+// Basic email validation
+bool ValidateEmailAddress(char* address)
+{
+	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
+	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
+	char* dotCom = NULL;							// pointer used for strstr function
+	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
+	char* pointer = NULL;							// pointer used for strchr function
+
+	pointer = strchr(address, ch);					// searches the user input email address for the '@'
+	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
+
+	// if either pointer is null, aka it did not find the occurrence of those requirements
+	if (pointer == NULL || dotCom == NULL)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+// Basic postal code validation
+bool ValidatePostalCode(char* postalCode)
+{
+	// Check all the stuff
+	if (strlen(postalCode) != 6 ||
+		!isalpha(postalCode[0]) ||
+		!isdigit(postalCode[1]) ||
+		!isalpha(postalCode[2]) ||
+		!isdigit(postalCode[3]) ||
+		!isalpha(postalCode[4]) ||
+		!isdigit(postalCode[5]))
+	{
+		return false;  // Invalid postal code
+	}
+
+	return true;  // Valid postal code
+}
 
 /*
 *
@@ -343,47 +379,14 @@ void GetDateFromUser(char dateString[])
 	sprintf(dateString, "%d-%02d-%02d", userYear, userMonth, userDay);
 }
 
-void GetString(char* buffer)
-{
-	fgets(buffer, MAX_STRING_SIZE, stdin);
-	ClearCarriageReturn(buffer);
-	while (buffer[0] == '\n' || buffer[0] == '\0' || buffer[0] == ' ')
-	{
-		printf("Invalid input...try again.\n");
-		fgets(buffer, MAX_STRING_SIZE, stdin);
-	}
-}
-
-bool ValidatePostalCode(char* postalCode)
-{
-	// Check all the stuff
-	if (strlen(postalCode) != 6 ||
-		!isalpha(postalCode[0]) ||
-		!isdigit(postalCode[1]) ||
-		!isalpha(postalCode[2]) ||
-		!isdigit(postalCode[3]) ||
-		!isalpha(postalCode[4]) ||
-		!isdigit(postalCode[5]))
-	{
-		return false;  // Invalid postal code
-	}
-
-	return true;  // Valid postal code
-}
-
-
-
-
-/*
-* TOOL FUNCTIONS END
-*/
 
 
 /*
 * DATABASE FUNCTIONS START
 */
 
-bool DatabaseLoginWithUserInput()
+// Login to a database using user input
+bool DatabaseLoginWithUserInput(MYSQL* databaseObject)
 {
 	char serverAddress[MAX_STRING_SIZE] = { "\0" };
 	char userName[MAX_STRING_SIZE] = { "\0" };
@@ -406,10 +409,32 @@ bool DatabaseLoginWithUserInput()
 	printf("Please enter the database name (Ex: bookstore): ");
 	GetString(databaseName);
 
+	if (!ConnectToDatabase(databaseObject, serverAddress, userName, password, databaseName))
+	{
+		// Did not connect
+		return false;
+	}
+
+	// Connection successful
+	return true;
+
 }
 
-bool DatabaseLoginWithProgramDefaults()
+// Login to the database using hard coded #define values
+bool DatabaseLoginWithProgramDefaults(MYSQL* databaseObject)
 {
+	if (!ConnectToDatabase(databaseObject, 
+		DEFAULT_DATABASE_SERVER_ADDRESS, 
+		DEFAULT_DATABASE_USERNAME, 
+		DEFAULT_DATABASE_PASSWORD, 
+		DEFAULT_DATABASE_NAME))
+	{
+		// Did not connect
+		return false;
+	}
+
+	// Connection successful
+	return true;
 
 }
 
@@ -430,7 +455,6 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 }
 
 // Attempts to execute a query, and lets you know if it failed for some reason
-// returns true or false
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 {
 	if (mysql_query(databaseObject, queryString) != 0)
@@ -641,7 +665,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 		}
 
 		// If the NEW address could not be added successfully
-		if (!AddNewAddress(databaseObject, streetNumber, streetName, postalCode))
+		if (!CreateNewAddress(databaseObject, streetNumber, streetName, postalCode))
 		{
 			// AddNewAddress was unsuccessful
 			printf("Error adding new address from customer creation, please contact support!\n");
@@ -674,7 +698,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 }
 
 // Read function COMPLETED
-bool ReadCustomer(MYSQL* databaseObject)
+bool ReadCustomerTable(MYSQL* databaseObject)
 {
 	// This is the BASIS for reading the entire customer table
 	char readCustomerTableQuery[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -724,199 +748,198 @@ bool ReadCustomer(MYSQL* databaseObject)
 }
 
 // Update the customer information
-bool UpdateCustomerInformation(MYSQL* databaseObject)
-{
-	char yesOrNo[MAX_STRING_SIZE];						// temporarily changed to yes to make my life easier
-	char newEntry[MAX_STRING_SIZE];			// hold the input for the update
-	int menu = 0;							// menu control for choosing what to update
-	int newAddressId = 0;					// if updating the address this holds the id for new address
-	int customerToUpdate = NULL;			// holds the customer id for the person we are updating info for
-	bool update = false;					// controls whether or not we are updating something - defaulted to false
-	bool updateReturn = false;				// this determines whether or not the update was successful for the user to know
-	bool validEmail = false;				// control for if an email is valid or not
-	bool noWhitespace = false;					// control for if a name is valid or not
-
-	printf("Would you like to update a customer's information? Y/N\n");
-	fgets(yesOrNo, sizeof(yesOrNo), stdin);
-
-	switch (yesOrNo[0])		// we only care about the first index which should have Y or N
-	{
-		// Yes case
-	case 'Y':
-	case 'y': // added for lower case
-		printf("Choose the ID of the customer to update.\n");
-		customerToUpdate = GetIntegerFromUser();
-		if (!CheckCustomerIdExistsQuery(databaseObject, customerToUpdate))
-		{
-			printf("Failed to find customer.\n");
-			update = false;						// change this to true to access menu for options to update
-			break;
-		}
-		update = true;
-		break;
-
-		// No case
-	case 'N':
-	case 'n': // Added for lower case
-		printf("\nReturning to menu.\n");		// let the user know they are returning to our default menu
-
-		// This could potentially be replaced with a RETURN false
-		break;
-
-		// Default case
-	default:
-		printf("\nInvalid input.\n");		// if someone is stupid and can't read, this probably won't help
-
-
-		// This could also be replaced with a RETURN false
-		updateReturn = false;				// let's the main() know nothing was updated
-	}
-
-
-	// if the above switches use RETURN, there is not need to check update here, since it will
-	// never get to this point if the user selects NO< or the default is used at any point
-	if (update)								// if update is true we go here
-	{
-		while (menu == 0)
-		{
-			// menu presented to user - populates through every loop
-			printf("\nPlease choose what you would like to update:\n");
-			printf("1)\tFirst Name\n");
-			printf("2)\tLast Name\n");
-			printf("3)\tEmail\n");
-			printf("4)\tAddress\n");
-			printf("5)\tReturn to main menu.\n\n");
-			menu = GetIntegerFromUser();					// get their input for which menu item - appears until a success or user enters 5
-
-			switch (menu)
-			{
-			case 1:
-				printf("\nPlease enter a new first name. Do not use any whitespace.\n");
-
-				// get the new name from the user
-				fgets(newEntry, sizeof(newEntry), stdin);
-				// clear the \n from the entry so it doesn't interfere with the database query
-				ClearCarriageReturn(newEntry);
-
-				//validate the name by making sure there are no spaces in it
-				noWhitespace = NoWhitespaceCheck(newEntry);
-				if (noWhitespace == false)
-				{
-					printf("\nPlease do not include any whitespace in name entry.\n");
-					menu = 0;
-					break;
-				}
-
-				// if the update of the first name is false then notify the user that it didn't update and reload the menu
-				updateReturn = UpdateCustomerFirstName(databaseObject, customerToUpdate, newEntry);
-				if (updateReturn == false)
-				{
-					printf("\nThere was an error. Did not update.\n");
-					menu = 0;
-				}
-
-				// leave the loop and return to the main interface if menu != 0
-				break;
-			case 2:
-				printf("\nPlease enter a new last name. Do not use any whitespace.\n");
-
-				// get the new last name from the user
-				fgets(newEntry, sizeof(newEntry), stdin);
-				// clear the \n from the entry so it doesn't interfere with the database query
-				ClearCarriageReturn(newEntry);
-
-				//validate the name by making sure there are no spaces in it
-				noWhitespace = NoWhitespaceCheck(newEntry);
-				if (noWhitespace == false)
-				{
-					printf("\nPlease do not include any whitespace in name entry.\n");
-					menu = 0;
-					break;
-				}
-
-				// if the update of the last name is false then notify the user that it didn't update and reload the menu
-				updateReturn = UpdateCustomerLastName(databaseObject, customerToUpdate, newEntry);
-				if (updateReturn == false)
-				{
-					printf("\nThere was an error. Did not update.\n");
-					menu = 0;
-				}
-
-				// leave the loop and return to the main interface if menu != 0
-				break;
-			case 3:
-				printf("\nPlease enter a new email address. Do not user any whitespace. It must include an '@' symbol and end in '.com'.\n");
-
-				// get the new email from the user
-				fgets(newEntry, sizeof(newEntry), stdin);
-
-				// validate the email by checking for the '@' and for the ending of '.com'
-				validEmail = ValidateEmailAddress(newEntry);
-				noWhitespace = NoWhitespaceCheck(newEntry);
-
-				// if the email didn't meet the validation requirements, notify the user and reload the menu
-				if (validEmail == false || noWhitespace == false)
-				{
-					printf("\nThe email address is not valid.\n");
-					menu = 0;
-					break;
-				}
-
-				// if email is valid remove the \n so it doesn't interfere with the database query
-				ClearCarriageReturn(newEntry);
-
-				// if the update of the email is false then notify the user that it didn't update and reload the menu
-				updateReturn = UpdateCustomerEmail(databaseObject, customerToUpdate, newEntry);
-				if (updateReturn == false)
-				{
-					printf("\nThere was an error. Did not update.\n");
-					menu = 0;
-				}
-
-				// leave the loop and return to the main interface if menu != 0
-				break;
-			case 4:
-				printf("\nPlease enter a new address id for the customer. It cannot be less than 1 or greater than 605.\n");
-
-				// get an integer from the user
-				newAddressId = GetIntegerFromUser();
-				// if the integer is not between 1 and 605 inclusive, notify the user it wasn't valid and reload the menu
-
-
-				// Why only up to 605?
-				if (newAddressId < 1 || newAddressId > 605)
-				{
-					printf("\nThe address ID was not valid.\n");
-					menu = 0;
-					break;
-				}
-
-				// if the update of the address ID is false then notify the user that it didn't update and reload the menu
-				updateReturn = UpdateCustomerAddressId(databaseObject, customerToUpdate, newAddressId);
-				if (updateReturn == false)
-				{
-					printf("\nThere was an error. Did not update.\n");
-					menu = 0;
-				}
-
-				// leave the loop and return to the main interface if menu != 0
-				break;
-			case 5:
-				printf("\nReturning to main menu.\n");		// if they don't want to update they can exit using this option
-				// set the return value for the function to false because no changes were made
-				updateReturn = false;
-
-				// leave the loop and return to the main interface if menu != 0
-				break;
-			default:
-				printf("\nPlease chose one of the listed options.\n");		// if they didn't chose a valid option there
-				menu = 0;													// this makes sure we go back to the menu and re-prompt them
-			}
-		}
-	}
-
-	return updateReturn;
-}
+//bool UpdateCustomerInformation(MYSQL* databaseObject)
+//{
+//	char yesOrNo[MAX_STRING_SIZE];						// temporarily changed to yes to make my life easier
+//	char newEntry[MAX_STRING_SIZE];			// hold the input for the update
+//	int menu = 0;							// menu control for choosing what to update
+//	int newAddressId = 0;					// if updating the address this holds the id for new address
+//	int customerToUpdate = NULL;			// holds the customer id for the person we are updating info for
+//	bool update = false;					// controls whether or not we are updating something - defaulted to false
+//	bool updateReturn = false;				// this determines whether or not the update was successful for the user to know
+//	bool validEmail = false;				// control for if an email is valid or not
+//	bool noWhitespace = false;					// control for if a name is valid or not
+//
+//	printf("Would you like to update a customer's information? Y/N\n");
+//	//fgets(yesOrNo, sizeof(yesOrNo), stdin);
+//	GetString(yesOrNo);
+//
+//	switch (yesOrNo[0])		// we only care about the first index which should have Y or N
+//	{
+//		// Yes case
+//	case 'Y':
+//	case 'y': // added for lower case
+//		printf("Choose the ID of the customer to update.\n");
+//		customerToUpdate = GetIntegerFromUser();
+//		if (!CheckCustomerIdExistsQuery(databaseObject, customerToUpdate))
+//		{
+//			printf("Failed to find customer.\n");
+//			update = false;						// change this to true to access menu for options to update
+//			break;
+//		}
+//		update = true;
+//		break;
+//
+//		// No case
+//	case 'N':
+//	case 'n': // Added for lower case
+//		printf("\nReturning to menu.\n");		// let the user know they are returning to our default menu
+//
+//		// This could potentially be replaced with a RETURN false
+//		break;
+//
+//		// Default case
+//	default:
+//		printf("\nInvalid input.\n");		// if someone is stupid and can't read, this probably won't help
+//
+//
+//		// This could also be replaced with a RETURN false
+//		updateReturn = false;				// let's the main() know nothing was updated
+//	}
+//
+//
+//	// if the above switches use RETURN, there is not need to check update here, since it will
+//	// never get to this point if the user selects NO< or the default is used at any point
+//	if (update)								// if update is true we go here
+//	{
+//		while (menu == 0)
+//		{
+//			// menu presented to user - populates through every loop
+//			printf("\nPlease choose what you would like to update:\n");
+//			printf("1)\tFirst Name\n");
+//			printf("2)\tLast Name\n");
+//			printf("3)\tEmail\n");
+//			printf("4)\tAddress\n");
+//			printf("5)\tReturn to main menu.\n\n");
+//			menu = GetIntegerFromUser();					// get their input for which menu item - appears until a success or user enters 5
+//
+//			switch (menu)
+//			{
+//			case 1:
+//				printf("\nPlease enter a new first name. Do not use any whitespace.\n");
+//
+//				// get the new name from the user
+//				GetString(newEntry);
+//
+//				//validate the name by making sure there are no spaces in it
+//				noWhitespace = NoWhitespaceCheck(newEntry);
+//				if (noWhitespace == false)
+//				{
+//					printf("\nPlease do not include any whitespace in name entry.\n");
+//					menu = 0;
+//					break;
+//				}
+//
+//				// if the update of the first name is false then notify the user that it didn't update and reload the menu
+//				updateReturn = UpdateCustomerFirstName(databaseObject, customerToUpdate, newEntry);
+//				if (updateReturn == false)
+//				{
+//					printf("\nThere was an error. Did not update.\n");
+//					menu = 0;
+//				}
+//
+//				// leave the loop and return to the main interface if menu != 0
+//				break;
+//			case 2:
+//				printf("\nPlease enter a new last name. Do not use any whitespace.\n");
+//
+//				// get the new last name from the user
+//				fgets(newEntry, sizeof(newEntry), stdin);
+//				// clear the \n from the entry so it doesn't interfere with the database query
+//				ClearCarriageReturn(newEntry);
+//
+//				//validate the name by making sure there are no spaces in it
+//				noWhitespace = NoWhitespaceCheck(newEntry);
+//				if (noWhitespace == false)
+//				{
+//					printf("\nPlease do not include any whitespace in name entry.\n");
+//					menu = 0;
+//					break;
+//				}
+//
+//				// if the update of the last name is false then notify the user that it didn't update and reload the menu
+//				updateReturn = UpdateCustomerLastName(databaseObject, customerToUpdate, newEntry);
+//				if (updateReturn == false)
+//				{
+//					printf("\nThere was an error. Did not update.\n");
+//					menu = 0;
+//				}
+//
+//				// leave the loop and return to the main interface if menu != 0
+//				break;
+//			case 3:
+//				printf("\nPlease enter a new email address. Do not user any whitespace. It must include an '@' symbol and end in '.com'.\n");
+//
+//				// get the new email from the user
+//				fgets(newEntry, sizeof(newEntry), stdin);
+//
+//				// validate the email by checking for the '@' and for the ending of '.com'
+//				validEmail = ValidateEmailAddress(newEntry);
+//				noWhitespace = NoWhitespaceCheck(newEntry);
+//
+//				// if the email didn't meet the validation requirements, notify the user and reload the menu
+//				if (validEmail == false || noWhitespace == false)
+//				{
+//					printf("\nThe email address is not valid.\n");
+//					menu = 0;
+//					break;
+//				}
+//
+//				// if email is valid remove the \n so it doesn't interfere with the database query
+//				ClearCarriageReturn(newEntry);
+//
+//				// if the update of the email is false then notify the user that it didn't update and reload the menu
+//				updateReturn = UpdateCustomerEmail(databaseObject, customerToUpdate, newEntry);
+//				if (updateReturn == false)
+//				{
+//					printf("\nThere was an error. Did not update.\n");
+//					menu = 0;
+//				}
+//
+//				// leave the loop and return to the main interface if menu != 0
+//				break;
+//			case 4:
+//				printf("\nPlease enter a new address id for the customer. It cannot be less than 1 or greater than 605.\n");
+//
+//				// get an integer from the user
+//				newAddressId = GetIntegerFromUser();
+//				// if the integer is not between 1 and 605 inclusive, notify the user it wasn't valid and reload the menu
+//
+//
+//				// Why only up to 605?
+//				if (newAddressId < 1 || newAddressId > 605)
+//				{
+//					printf("\nThe address ID was not valid.\n");
+//					menu = 0;
+//					break;
+//				}
+//
+//				// if the update of the address ID is false then notify the user that it didn't update and reload the menu
+//				updateReturn = UpdateCustomerAddressId(databaseObject, customerToUpdate, newAddressId);
+//				if (updateReturn == false)
+//				{
+//					printf("\nThere was an error. Did not update.\n");
+//					menu = 0;
+//				}
+//
+//				// leave the loop and return to the main interface if menu != 0
+//				break;
+//			case 5:
+//				printf("\nReturning to main menu.\n");		// if they don't want to update they can exit using this option
+//				// set the return value for the function to false because no changes were made
+//				updateReturn = false;
+//
+//				// leave the loop and return to the main interface if menu != 0
+//				break;
+//			default:
+//				printf("\nPlease chose one of the listed options.\n");		// if they didn't chose a valid option there
+//				menu = 0;													// this makes sure we go back to the menu and re-prompt them
+//			}
+//		}
+//	}
+//
+//	return updateReturn;
+//}
 
 // Delete a customer entry, requires checks in onlineOrder table for customerid
 bool DeleteCustomer(MYSQL* databaseObject)
@@ -1038,12 +1061,215 @@ bool SearchCustomerTableForEmail(MYSQL* databaseObject, char* emailToCheck)
 	}
 }
 
+bool UpdateCustomerInformation(MYSQL* databaseObject)
+{
+	// variables needed to make everything run smoothly
+	char userResponse[MAX_STRING_SIZE];
+	char newEntry[MAX_STRING_SIZE];
+	char streetName[MAX_STRING_SIZE];
+	char postalCode[MAX_STRING_SIZE];
+	char addressId[MAX_STRING_SIZE] = { '\0' };
+	bool didItWork = false;
+	bool validEmail = false;
+	bool noWhiteSpace = false;
+	int customerToUpdate = 0;
+	int streetNumber = 0;
+	int menu = 0;
+
+	printf("Would you like to update? Y/N\n");
+	GetString(userResponse);
+
+	// first switch case that determines if user is updating info or not
+	switch (userResponse[0])
+	{
+	case 'y':
+	case 'Y': // yes case
+		printf("Please enter a customer ID to update.\n");
+		customerToUpdate = GetIntegerFromUser();
+		
+		// does that customer exist
+		if (!SearchCustomerTableById(databaseObject, customerToUpdate))
+		{
+			didItWork = false;		// they do not exist! exit and go back to main menu
+			break;
+		}
+
+		// creates the menu with options for updating customer info
+		while (menu == 0)
+		{
+			printf("\nPlease choose what you would like to update:\n");
+			printf("1)\tFirst Name\n");
+			printf("2)\tLast Name\n");
+			printf("3)\tEmail\n");
+			printf("4)\tAddress\n");
+			printf("5)\tReturn to main menu.\n\n");
+			menu = GetIntegerFromUser();
+
+			// menu control switch
+			switch (menu)
+			{
+			case 1:			// first name update
+				printf("Please enter a new first name.\n");
+				GetString(newEntry);
+
+				// validate whether it worked or not and break out of switch
+				didItWork = UpdateCustomerFirstName(databaseObject, customerToUpdate, newEntry);
+				break;
+
+			case 2:			// last name update
+				printf("Please enter a new last name.\n");
+				GetString(newEntry);
+
+				// validate whether it worked or not and break out of switch
+				didItWork = UpdateCustomerLastName(databaseObject, customerToUpdate, newEntry);
+				break;
+
+			case 3:			// email update
+				printf("Please enter a new email address. Do not use any whitespace. It must include '@' and end in '.com'.\n");
+				GetString(newEntry);
+
+				// must have no whitespace and meet the email validation criteria
+				if ((validEmail = ValidateEmailAddress(newEntry)) == true && (noWhiteSpace = NoWhitespaceCheck(newEntry) == true))
+				{
+					// validate whether it worked or not
+					didItWork = UpdateCustomerEmail(databaseObject, customerToUpdate, newEntry);
+				}
+				else
+				{
+					// inform of invalid email
+					printf("Invalid email address.\n");
+				}
+				break;
+
+			case 4:			// address update
+				printf("Please enter a new address for the customer.\n");
+
+				// get new street number
+				printf("Street Number:\n");
+				streetNumber = GetIntegerFromUser();
+
+				// get new street name
+				printf("Please enter a street name:\n");
+				GetString(streetName); 
+
+				// do the street name/number combo already exist?
+				if (SearchAddressTable(databaseObject, streetNumber, streetName, addressId))
+				{
+					// if it does already exist
+					printf("\nThe address you provided already exists in the database!\n");
+					printf("Would you like to use the existing address ID of %s? Y/N\n", addressId);
+					GetString(userResponse);
+					if (userResponse[0] == 'Y' || userResponse[0] == 'y')
+					{
+						int addrId = addressId[0] - '0';		// changes into an ASCII readable number
+						// updates customer address id to the one returned by the search
+						didItWork = UpdateCustomerAddressId(databaseObject, customerToUpdate, addrId); 
+					}
+					else
+					{
+						// inform them they are exiting the update and break out of switch
+						printf("Exiting address update.\n");
+						didItWork = false;
+					}
+				}
+				else
+				{
+					// if it does not exist get a postal code
+					printf("Please enter a postal code.\n");
+					GetString(postalCode);
+					
+					// loop to force valid postal code
+					while (!ValidatePostalCode(postalCode))
+					{
+						printf("ERROR: Please enter the customers POSTAL CODE (NO SPACES PLEASE EX: N6C3X7: ");
+						GetString(postalCode);
+					}
+					
+					// add the new address
+					didItWork = AddNewAddress(databaseObject, streetNumber, streetName, postalCode);
+					// get the id for the new address
+					didItWork = SearchAddressTable(databaseObject, streetNumber, streetName, addressId);
+					// make it ASCII from string
+					int addrId = addressId[0] - '0';
+					// update the customer's address ID to new address ID
+					didItWork = UpdateCustomerAddressId(databaseObject, customerToUpdate, addrId);
+				}
+
+				break;
+
+			case 5:			// exit the update menu
+				printf("Returning to main menu...\n");
+				didItWork = false;
+
+				break;
+
+			default:		// refuse any invalid menu numbers
+				printf("Please select one of the listed options.\n");
+				menu = 0;		// loop back to menu for another prompt
+			}
+		}
+		break;
+
+	case 'n':
+	case 'N':		// the no case
+		printf("Returning to main menu...\n");
+		didItWork = false;		// give a return value to calling function
+		break;
+
+	default:		// refuse anything other than y,Y,n,N
+		printf("Invalid input.\n");
+	}
+
+	// return a value to calling function
+	return didItWork;
+}
+
+bool SearchCustomerTableById(MYSQL* databaseObject, int customerIdToCheck)
+{
+	if (!CheckCustomerIdExistsQuery(databaseObject, customerIdToCheck))
+	{
+		// The query was NOT valid!
+		printf("Failed to find customer in the database!\n");
+		return false;
+	}
+	// The query was valid
+	else
+	{
+		// Store the result from the query
+		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
+
+		// If the result is null, there was no result
+		if (customerResult == NULL)
+		{
+			// Print the SQL error
+			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+			return false;
+		}
+
+		// If the result was NO rows, the customer didnt exist
+		if (!CheckRowResult(customerResult))
+		{
+			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
+			return false;
+		}
+		
+		// The result has at LEAST ONE row, the customer DOES exist!
+		// Free the result for the customer so memory isnt still consumed by it
+		mysql_free_result(customerResult);
+
+		// The customer read was successful, put a message saying something like 
+		// "Customer read successful, all results have been displayed!" where this was called
+		return true;
+
+	}
+}
+
 bool UpdateCustomerFirstName(MYSQL* databaseObject, int customerId, char* firstName)
 {
 	char query[MAX_STRING_SIZE];
 
 	sprintf(query,
-		"UPDATE customer SET FirstName = 'FartHead' WHERE CustomerId = '10';");
+		"UPDATE customer\nSET FirstName = '%s'\nWHERE CustomerId = '%d'", firstName, customerId);
 
 	if (!SendQueryToDatabase(databaseObject, query))
 	{
@@ -1061,7 +1287,7 @@ bool UpdateCustomerLastName(MYSQL* databaseObject, int customerId, char* lastNam
 	sprintf(query,
 		"UPDATE customer\n"
 		"SET lastname = TRIM(' ' FROM '%s')\n"
-		"WHERE customerid = %d", lastName, customerId);
+		"WHERE customerid = %d;", lastName, customerId);
 
 	if (!SendQueryToDatabase(databaseObject, query))
 	{
@@ -1563,7 +1789,7 @@ bool ReadOrderTable(MYSQL* databaseObject)
 *
 */
 
-bool AddNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, char* postalCode)
+bool CreateNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, char* postalCode)
 {
 	char query[MAX_STRING_SIZE] = { "\0" };
 	// Create the SQL query using sprintf
@@ -2596,13 +2822,13 @@ int main2()
 		mysql_close(databaseObject);
 	}
 
-	if (ConnectToDatabase(databaseObject, SERVER, USERNAME, PASSWORD, DEFAULTDATABASE))
+	if (ConnectToDatabase(databaseObject, DEFAULT_DATABASE_SERVER_ADDRESS, DEFAULT_DATABASE_USERNAME, DEFAULT_DATABASE_PASSWORD, DEFAULT_DATABASE_NAME))
 	{
-		printf("Connected to database: \"%s\"!\n\n", DEFAULTDATABASE);
+		printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
 	}
 	else
 	{
-		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULTDATABASE);
+		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
 		return EXIT_FAILURE;
 		// This is where the program goes to die, instead of the switch.
 	}
@@ -2812,17 +3038,31 @@ int main()
 		mysql_close(databaseObject);
 	}
 
+	// Used for logging in with program defaults
 
-	if (ConnectToDatabase(databaseObject, SERVER, USERNAME, PASSWORD, DEFAULTDATABASE))
+	if (DatabaseLoginWithProgramDefaults(databaseObject))
 	{
-		printf("Connected to database: \"%s\"!\n\n", DEFAULTDATABASE);
+		printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
 	}
 	else
 	{
-		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULTDATABASE);
+		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
 		return EXIT_FAILURE;
 		// This is where the program goes to die, instead of the switch.
 	}
+
+	// Used for logging in with user input
+
+	//if (DatabaseLoginWithUserInput(databaseObject))
+	//{
+	//	printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+	//}
+	//else
+	//{
+	//	printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+	//	return EXIT_FAILURE;
+	//	// This is where the program goes to die, instead of the switch.
+	//}
 
 
 	// CODE GOES HERE
@@ -2839,7 +3079,7 @@ int main()
 	//	printf("Add new customer so far so good!! - MAIN\n");
 	//}
 
-	//// CUSTOMER table READ
+	// CUSTOMER table READ
 	//if (!ReadCustomer(databaseObject))
 	//{
 	//	printf("failed to read customer - MAIN!!\n");
