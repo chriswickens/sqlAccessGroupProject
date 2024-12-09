@@ -29,7 +29,7 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "6741"
+#define PASSWORD "cwickens01"
 #define DEFAULTDATABASE "bookstore"
 
 
@@ -56,7 +56,6 @@ bool NoWhitespaceCheck(char* name);
 bool ValidateEmailAddress(char* address);
 char PromptForYesOrNo();
 void ClearCarriageReturn(char buffer[]);
-void ClearInputBuffer();
 void GetDateFromUser(char dateString[]);
 void GetString(char* buffer);
 bool ValidatePostalCode(char* postalCode);
@@ -270,7 +269,7 @@ char PromptForYesOrNo()
 		input = getchar();
 
 		// Clear any extra characters from the input buffer
-		while (getchar() != '\n');  // Remove the newline and any extra characters
+		ClearCarriageReturn(input);
 
 		// Check if the input is a valid Y/y or N/n
 		if (input == 'Y' || input == 'y' || input == 'N' || input == 'n')
@@ -1035,7 +1034,7 @@ bool UpdateCustomerFirstName(MYSQL* databaseObject, int customerId, char* firstN
 	char query[MAX_STRING_SIZE];
 
 	sprintf(query,
-		"UPDATE customer SET FirstName = 'FartHead' WHERE CustomerId = '10';");
+		"UPDATE customer SET FirstName = 'FartHead' WHERE CustomerId = '3';");
 
 	if (!SendQueryToDatabase(databaseObject, query))
 	{
@@ -2667,15 +2666,15 @@ int main()
 	//	printf("Add new customer so far so good!! - MAIN\n");
 	//}
 
-	//// CUSTOMER table READ
-	//if (!ReadCustomer(databaseObject))
-	//{
-	//	printf("failed to read customer - MAIN!!\n");
-	//}
-	//else
-	//{
-	//	printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
-	//}
+	// CUSTOMER table READ
+	if (!ReadCustomer(databaseObject))
+	{
+		printf("failed to read customer - MAIN!!\n");
+	}
+	else
+	{
+		printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
+	}
 
 
 
@@ -2710,14 +2709,14 @@ int main()
 	//}
 
 	// UPDATE CUSTOMER
-	if (!UpdateCustomerInformation(databaseObject))
-	{
-		printf("Failed to update customer information.\n");
-	}
-	else
-	{
-		printf("Customer information updated.\n");
-	}
+	//if (!UpdateCustomerInformation(databaseObject))
+	//{
+	//	printf("Failed to update customer information.\n");
+	//}
+	//else
+	//{
+	//	printf("Customer information updated.\n");
+	//}
 
 	// CREATE ORDER
 	//if (!CreateOrder(databaseObject))
@@ -2731,7 +2730,7 @@ int main()
 
 	// CODE STOPS HERE
 
-
+	UpdateCustomerFirstName(databaseObject, 1, "hello");
 
 	//DatabaseLoginWithUserInput();
 
