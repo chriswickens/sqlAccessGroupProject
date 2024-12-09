@@ -95,6 +95,7 @@ bool ReadOrderTable(MYSQL* databaseObject);
 /*
 * MISC Database Functions
 */
+bool AddNewAddress(MYSQL* databaseObject, int streetNumber, char streetName, char postalCode);
 bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName);
 bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetName, char* addressId);
 
@@ -170,7 +171,7 @@ char PromptForYesOrNo()
 		if (input == 'Y' || input == 'y' || input == 'N' || input == 'n')
 		{
 			printf("You entered: %c\n", input);  // Optional: Display the valid input
-			break;  // Exit the loop if the input is valid
+			return input;
 		}
 		else
 		{
@@ -424,6 +425,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 	int streetNumber = NULL; // Storage for addressId
 	char streetName[MAX_STRING_SIZE] = { "\0" };
 	char postalCode[MAX_STRING_SIZE] = { "\0" };
+	bool getPostalCode = true; // Use case: when the address does NOT exist
 
 	// Ask for the email address first (to see if the customer exists)
 	//printf("Please enter the customers EMAIL address: ");
@@ -469,7 +471,8 @@ bool CreateCustomer(MYSQL* databaseObject)
 
 	// ALL GOOD ABOVE THIS
 	char tempStreet[MAX_STRING_SIZE] = "Main Street";
-	if (SearchAddressTable(databaseObject, 123, tempStreet, addressId))
+	int tempStreetNum = 123;
+	if (SearchAddressTable(databaseObject, tempStreetNum, tempStreet, addressId))
 	{
 		char yesOrNo;
 		printf("\nAddress exists\n");
@@ -483,33 +486,66 @@ bool CreateCustomer(MYSQL* databaseObject)
 
 		else
 		{
-			// This is where code would go if they want to REUSE the address that exists!
-			// assign the existing address ID to the customer and exit
+			// DONT Reuse the address, so skip getting the postal code
+			getPostalCode = false;
 		}
 
 	}
 
-	printf("\nAddress DONT exists Adding new address!\n");
-	
-
-	// Get the postal code from the user
-	printf("Please enter the customers POSTAL CODE (NO SPACES PLEASE EX: N6C3X7: ");
-	GetString(postalCode);
-	while (!ValidatePostalCode(postalCode))
+	// If the postal code needs to be gotten ONLY USED WHEN CREATING NEW ADDRESS
+	if (getPostalCode)
 	{
-		printf("ERROR: Please enter the customers POSTAL CODE (NO SPACES PLEASE EX: N6C3X7: ");
+		// Get the postal code from the user
+		printf("Please enter the customers POSTAL CODE (NO SPACES PLEASE EX: N6C3X7: ");
 		GetString(postalCode);
+		while (!ValidatePostalCode(postalCode))
+		{
+			printf("ERROR: Please enter the customers POSTAL CODE (NO SPACES PLEASE EX: N6C3X7: ");
+			GetString(postalCode);
+		}
+
+
+		// you are getting a postal code because they want an entirely new address
+		printf("\nEntire !!! NEW !!! Address: %d %s %s\n", tempStreetNum, tempStreet, postalCode);
+
+		// so add the address here, then check the address list again here to get the new address id
+			// Need to add the address to the address table
+		if (!AddNewAddress(databaseObject, tempStreetNum, tempStreet, postalCode))
+		{
+			// the add address was unsuccessful
+			printf("Error adding new address from customer creation, please contact support!\n");
+			return false;
+		}
+
+		// Search for the newly added address, if this returns false, there's a problem!
+		if (!SearchAddressTable(databaseObject, tempStreetNum, tempStreet, addressId))
+		{
+			printf("Error adding new address during customer creation!");
+			return false;
+		}
+		// Otherwise, no problem
 	}
 
-	//sprintf(createCustomerQuery, "INSERT INTO Customer (Email, FirstName, LastName, AddressId) VALUES ('%s', '%s', '%s', %d);",
-	//	email, firstName, lastName, addressId);
+	printf("\nEntire Address (after getpostal): StreetNum: %d  StreetName: %s  addressID: %s\n", tempStreetNum, tempStreet, addressId);
 
-	//if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
-	//{
-	//	printf("Failed to add new CUSTOMER table entry!\n");
-	//	// Throw in a check for if the customer exists, and show them the customer already exists
-	//	return false;
-	//}
+
+
+
+	// 
+	// Then SEARCH the address table AGAIN to get the address ID like above
+
+	// REQUIRED: Function to add an address to the address table, GO BASIC, this isnt the main purpose
+	// Once that is done, after searching for the ID
+
+	sprintf(createCustomerQuery, "INSERT INTO Customer (Email, FirstName, LastName, AddressId) VALUES ('%s', '%s', '%s', %s);",
+		email, firstName, lastName, addressId);
+
+	if (!SendQueryToDatabase(databaseObject, createCustomerQuery))
+	{
+		printf("Failed to add new CUSTOMER table entry!\n");
+		// Throw in a check for if the customer exists, and show them the customer already exists
+		return false;
+	}
 
 	//printf("Customer added!\n");
 	return true;
@@ -1164,6 +1200,25 @@ bool ReadOrderTable(MYSQL* databaseObject)
 * MISC Table Functions
 *
 */
+
+bool AddNewAddress(MYSQL* databaseObject, int streetNumber, char streetName, char postalCode)
+{
+	char query[MAX_STRING_SIZE] = { "\0" };
+	// Create the SQL query using sprintf
+	sprintf(query,
+		"INSERT INTO Address (StreetNumber, StreetName, PostalCode) VALUES (%d, '%s', '%s');",
+		streetNumber, streetName, postalCode);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+
 // Function to see if customer exists based on EMAIL
 bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName)
 {
@@ -1219,7 +1274,7 @@ bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetNam
 		while ((addressRow = mysql_fetch_row(addressResult)) != NULL)
 		{
 			printf("ADDRESS Records found: \n\tAddressId: %s\n\tStreetNumber: %s\n\tStreetName: %s\n\tPostalCode: %s\n\t", addressRow[0], addressRow[1], addressRow[2], addressRow[3]);
-			strcpy(addressId, addressRow[0]);
+			strcpy(addressId, addressRow[0]); // Copy ID
 			break;
 
 
