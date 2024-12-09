@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <mysql.h>
+#include <conio.h>	// Let's us use getch() for menu system
 
 #pragma warning(disable : 4996)
 
@@ -28,8 +29,9 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "cwickens01"
+#define PASSWORD "Sah@-123"
 #define DEFAULTDATABASE "bookstore"
+
 
 // Date ranges
 #define MONTHMIN 1
@@ -1234,152 +1236,39 @@ bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetNam
 }
 
 
-/*
-*
-* CAN BE DELETED
-*
-*/
-bool AddNewRental(MYSQL* databaseObject)
+
+
+/* --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+			DELETE FUNCTIONS BELOW
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+
+// Main delete menu
+void deleteMenu(void)
 {
-	// Start: Get customer_id to add a new rental for
-	printf("Please enter the customer_id:");
-	int customerIdToCheck = GetIntegerFromUser(); // The ID to check
-	printf("Please enter the movie inventory_id:");
-	int inventoryIdToCheck = GetIntegerFromUser(); // Get the inventory_id for the movie
-	printf("Please enter the staff_id:");
-	int staffIdToCheck = GetIntegerFromUser(); // Get the staff ID from the user
-
-	// Check the customer ID
-	if (!CheckCustomerIdExistsQuery(databaseObject, customerIdToCheck))
-	{
-		// The query was NOT valid!
-		printf("Failed to find customer in the database!\n");
-		return false;
-	}
-
-	// The query was valid
-	else
-	{
-		// Store the result from the query
-		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
-
-		// If the result is null, there was no result
-		if (customerResult == NULL)
-		{
-			// Print the SQL error
-			printf("SQL Query Execution problem, ERROR: %s\n", mysql_error(databaseObject));
-			return false;
-		}
-
-		// If the result was NO rows, the customer didnt exist
-		if (!CheckRowResult(customerResult))
-		{
-			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
-			return false;
-		}
-		// The result has at LEAST ONE row, the customer DOES exist!
-		else
-		{
-			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
-			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
-			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
-			{
-				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
-			}
-		}
-
-		// Free the result for the customer so memory isnt still consumed by it
-		mysql_free_result(customerResult);
-	}
-	// End of customer_id check
-
-
-	// Check if the film is available
-	if (!IsFilmAvailableQuery(databaseObject, inventoryIdToCheck))
-	{
-		printf("Failed to find the film in the database!\n");
-		return false;
-	}
-
-	MYSQL_RES* checkInventoryResult = mysql_store_result(databaseObject);
-
-	if (checkInventoryResult == NULL)
-	{
-		printf("SQL Query Execution problem, ERROR: %s\n", mysql_error(databaseObject));
-		return false;
-	}
-
-	if (!CheckRowResult(checkInventoryResult))
-	{
-		printf("\nMOVIE #%d NOT AVAILABLE, do you want to be added to the waitlist?\n", inventoryIdToCheck);
-		PromptForYesOrNo();
-		return false;
-	}
-	else
-	{
-		MYSQL_ROW inventoryRow;
-		while ((inventoryRow = mysql_fetch_row(checkInventoryResult)) != NULL)
-		{
-			printf("MOVIE ID: Records found: MOVIE info: %s\nMOVIE IS AVAILABLE IN INVENTORY FOR RENT\n\n", inventoryRow[0]);
-		}
-		mysql_free_result(checkInventoryResult);
-	}
-
-	// Check the staff ID
-	if (!StaffIdExistsQuery(databaseObject, staffIdToCheck))
-	{
-		// Bad things happened
-		printf("Failed to find staff_id!\n");
-		return false;
-	}
-
-	MYSQL_RES* checkStaffResult = mysql_store_result(databaseObject);
-
-	// If it failed to get any results for some reason
-	if (checkStaffResult == NULL)
-	{
-		// Print the SQL error
-		printf("SQL Query Execution problem, ERROR: %s\n", mysql_error(databaseObject));
-		return false;
-	}
-
-	// Check the returned rows to see if the query returned anything
-	if (!CheckRowResult(checkStaffResult))
-	{
-		printf("\nERROR: Staff ID NOT FOUND: %d\n", staffIdToCheck);
-		return false;
-	}
-	// The customer DOES exist, print out information!
-	else
-	{
-		MYSQL_ROW staffRow;
-		while ((staffRow = mysql_fetch_row(checkStaffResult)) != NULL)
-		{
-			printf("Staff ID FOUND: Name: %s %s\n\n", staffRow[1], staffRow[2]);
-		}
-		mysql_free_result(checkStaffResult);
-	}
-	// END of STAFF_ID CHECKS
-
-	// If it gets to this point, time to add the rental
-	char addRentalQuery[MAX_STRING_SIZE];
-	sprintf(addRentalQuery,
-		"INSERT INTO rental (rental_date, inventory_id, customer_id, return_date, staff_id) "
-		"VALUES (NOW(), %d, %d, NULL, %d);",
-		inventoryIdToCheck, customerIdToCheck, staffIdToCheck);
-
-	if (!SendQueryToDatabase(databaseObject, addRentalQuery))
-	{
-		printf("Failed to add new rental entry!\n");
-		return false;
-	}
-
-	// Added the rental, return true!
-	return true;
+	printf("***What do you want to delete?***\n\n");
+	printf("\t(1) Customer\n");					
+	printf("\t(2) Book\n");							
+	printf("\t(3) Order\n");						
+	printf("\t(x) Cancel Deletion\n");							
 }
 
 
-// Option 2
+// Customer Deletion Functions
+
+// Delete Customer Implications message
+void deleteCustomerImplication(void)
+{
+	printf("You have chosen to delete a customer record.\n\n");
+	printf("Doing so will have the following effects:\n");
+	printf("\t1) Customer's personal information will be permanently deleted from the database.\n");
+	printf("\t2) All order records associated with this customer will be deleted from the database.\n");
+	printf("\t3) The address associated with this customer will be deleted from the database.\n\n");
+	printf("Would you like to proceed with deleting a customer?\n\n");
+	printf("Enter 'Y' to proceed or any input to cancel.\n");
+}
+
 
 /*
 *
@@ -1392,15 +1281,7 @@ bool AddNewRental(MYSQL* databaseObject)
 bool DeleteCustomerRecord(MYSQL* databaseObject)
 {
 	// Prompt user to confirm deleting a customer and explain implications.
-	printf("You have chosen to delete a customer record.\n\n");
-	printf("Doing so will have the following effects:\n");
-	printf("\t1) Customer's personal information will be permanently deleted from the database.\n");
-	printf("\t2) All rental records associated with this customer will be deleted from the database.\n");
-	printf("\t3) All payment records associated with this customer will be deleted from the database.\n");
-	printf("\t4) The address associated with this customer will be deleted from the database.\n\n");
-	printf("Would you like to proceed with deleting a customer?\n\n");
-	printf("Enter 'Y' to proceed or any input to cancel.\n");
-
+	deleteCustomerImplication();
 	// Get input from user
 
 	char yesOrNo[MAX_STRING_SIZE] = { "" };
@@ -1409,9 +1290,12 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 	// If user enters 'y', then continue with deletion logic. Otherwise, cancel deletion.
 	if (strcmp(yesOrNo, "Y\n") == 0)
 	{
+		// Clear screen
+		system("cls");
+
 		// Prompt customer id
 		printf("You've chosen to proceed with deletion.\n\n");
-		printf("Please enter the customer_id:");
+		printf("Please enter the customer's ID:");
 		int customerIdToCheck = GetIntegerFromUser(); // The ID to check
 
 		// Check Customer Id
@@ -1455,6 +1339,11 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 			mysql_free_result(customerResult);
 		}
 
+		/*
+		
+		// we don't have a way to check status of order; may need to add order status to table for this...
+		// we also don't have payment... maybe we should add this too???
+
 
 		// Check if customer has returned all rented films
 		int customerIdToCheckForOutstandRentals = customerIdToCheck;
@@ -1468,6 +1357,9 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 			printf("Failed to get the result set! %s", mysql_error(databaseObject));
 			return EXIT_FAILURE;
 		}
+
+		
+
 
 		// Check the returned rows to see if the query returned anything. If it doesn't, then delete the customer.
 		if (!CheckRowResult(checkOutstandingRentals))
@@ -1539,9 +1431,229 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 
 			return false;
 		}
+
+		*/
 	}
 	else
 	{
+		system("cls");
+		printf("Deletion Process cancelled...\n");
+
+		return false;
+	}
+
+	// Deleted the customer, return true!
+	return true;
+}
+
+
+// Delete book functions
+
+// Delete book implications message
+void deleteBookImplication(void)
+{
+	printf("You have chosen to delete a book's record.\n\n");
+	printf("Doing so will have the following effects:\n");
+	printf("\t1) Book's details will be permanently deleted from the database.\n");
+	printf("\t2) AuthorBook relating to this book will be permanently deleted from the database.\n");
+	printf("\t3) OrderProduct relating to this book will be permanently deleted from the database.\n");
+	printf("\t4) OnlineOrder relating to this book will be permanently deleted from the database.\n");
+	printf("\t5) StoreInventory relating to this book will be permanently deleted from the database.\n");
+
+	printf("Would you like to proceed with deleting a customer?\n\n");
+	printf("Enter 'Y' to proceed or any input to cancel.\n");
+}
+
+
+// Function to see if book exists based on ID
+bool CheckBookIdExistsQuery(MYSQL* databaseObject, int customerIdNumber)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery,
+		"SELECT * FROM customer\n"
+		//"WHERE customer_id = %d; \n" // THis is the original line from the last program, NO underscore in the new customer ID
+		"WHERE customerid = %d; \n"
+		, customerIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+
+/*
+*
+* CAN BE REUSED at some level, some changes will need to be made
+* Must check if OnlineOrder is using customerID, cannot delete if being used in onlineOrder
+* Should it delete the address associated with the customer?
+*
+*
+*/
+bool DeleteBookRecord(MYSQL* databaseObject)
+{
+	// Prompt user to confirm deleting a book and explain implications.
+	deleteBookImplication();
+	
+	// Get input from user
+	char yesOrNo[MAX_STRING_SIZE] = { "" };
+	fgets(yesOrNo, sizeof(yesOrNo), stdin);
+
+	// If user enters 'y', then continue with deletion logic. Otherwise, cancel deletion.
+	if (strcmp(yesOrNo, "Y\n") == 0)
+	{
+		// Clear screen
+		system("cls");
+
+		// Prompt customer id
+		printf("You've chosen to proceed with deletion.\n\n");
+		printf("Please enter the customer's ID:");
+		int customerIdToCheck = GetIntegerFromUser(); // The ID to check
+
+		// Check Customer Id
+		if (!CheckCustomerIdExistsQuery(databaseObject, customerIdToCheck))
+		{
+			// The query was NOT valid!
+			printf("Failed to find customer in the database!\n");
+			return false;
+		}
+		// The query was valid
+		else
+		{
+			// Store the result from the query
+			MYSQL_RES* customerResult = mysql_store_result(databaseObject);
+
+			// If the result is null, there was no result
+			if (customerResult == NULL)
+			{
+				// Print the SQL error
+				printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+				return false;
+			}
+
+			// If the result has NO rows, the customer didnt exist
+			if (!CheckRowResult(customerResult))
+			{
+				printf("Customer with ID %d does not exist.\n", customerIdToCheck);
+				return false;
+			}
+			// The result has at LEAST ONE row, the customer DOES exist!
+			else
+			{
+				MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
+				// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+				while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
+				{
+					printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n\n", customerRow[0], customerRow[2], customerRow[3]);
+				}
+			}
+			// Free the result for the customer so memory isnt still consumed by it
+			mysql_free_result(customerResult);
+		}
+
+		/*
+
+		// we don't have a way to check status of order; may need to add order status to table for this...
+		// we also don't have payment... maybe we should add this too???
+
+
+		// Check if customer has returned all rented films
+		int customerIdToCheckForOutstandRentals = customerIdToCheck;
+		OutstandingRentalsQuery(databaseObject, customerIdToCheckForOutstandRentals);
+		MYSQL_RES* checkOutstandingRentals = mysql_store_result(databaseObject);
+
+		// If it failed to get any results for some reason
+		if (checkOutstandingRentals == NULL)
+		{
+			// Print the SQL error
+			printf("Failed to get the result set! %s", mysql_error(databaseObject));
+			return EXIT_FAILURE;
+		}
+
+
+
+
+		// Check the returned rows to see if the query returned anything. If it doesn't, then delete the customer.
+		if (!CheckRowResult(checkOutstandingRentals))
+		{
+			// Notify user that customer's information is being deleted
+			printf("\nCustomer has no outstanding rentals!\nProceeding to delete customer's records...\n\n");
+
+			// Delete customer rental records
+			char deleteRentalQuery[MAX_STRING_SIZE];
+			sprintf(deleteRentalQuery, "DELETE FROM rental WHERE customer_id = %d;", customerIdToCheck);
+
+			if (!SendQueryToDatabase(databaseObject, deleteRentalQuery))
+			{
+				printf("Rental records deletion failed!\n");
+				return false;
+			}
+			printf("Rental records deletion successful!\n");
+
+			// Delete customer payment records
+			char deletePaymentQuery[MAX_STRING_SIZE];
+			sprintf(deletePaymentQuery, "DELETE FROM payment WHERE customer_id = %d;", customerIdToCheck);
+
+			if (!SendQueryToDatabase(databaseObject, deletePaymentQuery))
+			{
+				printf("Payment records deletion failed!\n");
+				return false;
+			}
+			printf("Payment records deletion successful!\n");
+
+			// Delete customer payment records
+			char deleteCustomerQuery[MAX_STRING_SIZE];
+			sprintf(deleteCustomerQuery, "DELETE FROM customer WHERE customer_id = %d;", customerIdToCheck);
+
+			if (!SendQueryToDatabase(databaseObject, deleteCustomerQuery))
+			{
+				printf("Customer records deletion failed!\n");
+				return false;
+			}
+			printf("Customer records deletion successful!\n");
+
+			// Delete customer payment records
+			char deleteAddressQuery[MAX_STRING_SIZE];
+			sprintf(deleteAddressQuery, "DELETE FROM address WHERE address_id = (SELECT address_id FROM customer WHERE customer_id = %d);", customerIdToCheck);
+
+			if (!SendQueryToDatabase(databaseObject, deleteAddressQuery))
+			{
+				printf("Customer address records deletion failed!\n");
+				return false;
+			}
+			printf("Customer address records deletion successful!\n");
+
+			printf("Deletion process concluded.\n");
+
+			return true;
+		}
+		// Otherwise, cancel the deletion
+		else
+		{
+			printf("This customer has an outstanding rental! Information below:\n\n");
+
+			MYSQL_ROW outstandingRentalData;
+			while ((outstandingRentalData = mysql_fetch_row(checkOutstandingRentals)) != NULL)
+			{
+				printf("OUTSTANDING RENTAL: MOVIE info:\n\tID: %s\n\ttitle: %s\n\tRental Date: %s\n\tReturn date: %s \n\n", outstandingRentalData[0], outstandingRentalData[3], outstandingRentalData[1], outstandingRentalData[2]);
+			}
+			mysql_free_result(checkOutstandingRentals);
+
+			printf("Unable to delete customer due to outstanding rental.\nCancelling deletion process...\n\n");
+
+			return false;
+		}
+
+		*/
+	}
+	else
+	{
+		system("cls");
 		printf("Deletion Process cancelled...\n");
 
 		return false;
@@ -1555,125 +1667,11 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 
 
 
-/*
-*
-* CAN BE DELETED ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-* CAN BE DELETED----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-*/
-//bool CheckRentalHistory(MYSQL* databaseObject)
-//{
-//	printf("Please enter a customer ID to check: ");
-//	int customerIdToCheck = GetIntegerFromUser();
-//	// CHECK IF THE CUSTOMER EXISTS FIRST
-//	if (!CustomerExistsQuery(databaseObject, customerIdToCheck))
-//	{
-//		// The query was NOT valid!
-//		printf("Failed to find customer in the database!\n");
-//		return false;
-//	}
-//	// The query was valid
-//	else
-//	{
-//		// Store the result from the query
-//		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
-//
-//		// If the result is null, there was no result
-//		if (customerResult == NULL)
-//		{
-//			// Print the SQL error
-//			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
-//			return false;
-//		}
-//
-//		// If the result was NO rows, the customer didnt exist
-//		if (!CheckRowResult(customerResult))
-//		{
-//			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
-//			return false;
-//		}
-//		// The result has at LEAST ONE row, the customer DOES exist!
-//		else
-//		{
-//			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
-//			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
-//			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
-//			{
-//				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
-//			}
-//		}
-//
-//		// Free the result for the customer so memory isnt still consumed by it
-//		mysql_free_result(customerResult);
-//	}
-//
-//
-//	// Get the date range
-//	printf("Please enter the starting date range: ");
-//	char startDate[MAX_STRING_SIZE];  // Static buffer to hold the formatted date
-//	GetDateFromUser(startDate);
-//	printf("Start Date Date: %s\n", startDate);
-//
-//	printf("Please enter the ending date range: ");
-//	char endDate[MAX_STRING_SIZE];  // Static buffer to hold the formatted date
-//	GetDateFromUser(endDate);
-//	printf("End Date Date: %s\n", endDate);
-//
-//	char query[MAX_STRING_SIZE];
-//
-//	sprintf(query,
-//		"SELECT CONCAT(c.first_name, ' ', c.last_name) AS customer_name, f.title, r.rental_date, r.return_date "
-//		"FROM rental r "
-//		"JOIN customer c ON r.customer_id = c.customer_id "
-//		"JOIN inventory i ON r.inventory_id = i.inventory_id "
-//		"JOIN film f ON i.film_id = f.film_id "
-//		"WHERE c.customer_id = %d "  // Customer ID
-//		"AND r.rental_date BETWEEN '%s' AND '%s' "  // Date range
-//		"ORDER BY r.rental_date DESC;",
-//		customerIdToCheck, startDate, endDate
-//	); 
-//
-//	if (!SendQueryToDatabase(databaseObject, query))
-//	{
-//		printf("Error sending query to DB...\n");
-//		return false;
-//	}
-//
-//	// Store the result from the query
-//	MYSQL_RES* rentalHistoryResult = mysql_store_result(databaseObject);
-//
-//	// If the result is null, there was no result
-//	if (rentalHistoryResult == NULL)
-//	{
-//		// Print the SQL error
-//		printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
-//		return false;
-//	}
-//
-//	// If the result was NO rows, the customer didnt exist
-//	if (!CheckRowResult(rentalHistoryResult))
-//	{
-//		printf("No rental history found!\n");
-//		return false;
-//	}
-//	// The result has at LEAST ONE row, the customer DOES exist!
-//	else
-//	{
-//		MYSQL_ROW historyRow; // Get the rows using MYSQL_ROW for printing
-//		// Iterate over the row data until it is reading null, and print each entry (probably only 1)
-//		printf("\n---------START OF Rental History---------\n");
-//		while ((historyRow = mysql_fetch_row(rentalHistoryResult)) != NULL)
-//		{
-//			printf("Customer Name: %s\nMovie Title: %s\nRental Date: %s\nReturn Date: %s\n\n",
-//				historyRow[0], historyRow[1], historyRow[2], historyRow[3]);
-//
-//		}
-//		printf("\n---------END OF Rental History---------\n");
-//	}
-//	return true;
-//}
-// CAN BE DELETED ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// CAN BE DELETED ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+/* --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+			DELETE FUNCTIONS ABOVE
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 
 
@@ -1831,33 +1829,6 @@ int main2()
 	// - that way we only need actual validation for the sql parts where we're asking for information directly
 	//
 	//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2080,6 +2051,8 @@ int main2()
 
 
 
+
+
 // I just did this so we can test creating new functions while maintaining the old main()
 // We can just remove this later when it's time to compile everything into the cohesive program menu
 int main()
@@ -2159,6 +2132,9 @@ int main()
 	//}
 
 	// CODE STOPS HERE
+
+
+
 
 
 
