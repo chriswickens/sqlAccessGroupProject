@@ -27,10 +27,10 @@
 #define MAX_STRING_SIZE 500
 
 // Connection details
-#define SERVER "localhost"
-#define USERNAME "root"
-#define PASSWORD "6741"
-#define DEFAULTDATABASE "bookstore"
+#define DEFAULT_DATABASE_SERVER_ADDRESS "localhost"
+#define DEFAULT_DATABASE_USERNAME "root"
+#define DEFAULT_DATABASE_PASSWORD "cwickens01"
+#define DEFAULT_DATABASE_NAME "bookstore"
 
 
 // Date ranges
@@ -56,13 +56,13 @@ bool NoWhitespaceCheck(char* name);
 bool ValidateEmailAddress(char* address);
 char PromptForYesOrNo();
 void ClearCarriageReturn(char buffer[]);
-//void ClearInputBuffer();
 void GetDateFromUser(char dateString[]);
 void GetString(char* buffer);
 bool ValidatePostalCode(char* postalCode);
 
 // Database specific prototypes
-bool DatabaseLoginWithUserInput();
+bool DatabaseLoginWithUserInput(MYSQL* databaseObject);
+bool DatabaseLoginWithProgramDefaults(MYSQL* databaseObject);
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
@@ -271,7 +271,7 @@ char PromptForYesOrNo()
 		input = getchar();
 
 		// Clear any extra characters from the input buffer
-		while (getchar() != '\n');  // Remove the newline and any extra characters
+		ClearCarriageReturn(input);
 
 		// Check if the input is a valid Y/y or N/n
 		if (input == 'Y' || input == 'y' || input == 'N' || input == 'n')
@@ -376,7 +376,7 @@ bool ValidatePostalCode(char* postalCode)
 * DATABASE FUNCTIONS START
 */
 
-bool DatabaseLoginWithUserInput()
+bool DatabaseLoginWithUserInput(MYSQL* databaseObject)
 {
 	char serverAddress[MAX_STRING_SIZE] = { "\0" };
 	char userName[MAX_STRING_SIZE] = { "\0" };
@@ -399,10 +399,31 @@ bool DatabaseLoginWithUserInput()
 	printf("Please enter the database name (Ex: bookstore): ");
 	GetString(databaseName);
 
+	if (!ConnectToDatabase(databaseObject, serverAddress, userName, password, databaseName))
+	{
+		// Did not connect
+		return false;
+	}
+
+	// Connection successful
+	return true;
+
 }
 
-bool DatabaseLoginWithProgramDefaults()
+bool DatabaseLoginWithProgramDefaults(MYSQL* databaseObject)
 {
+	if (!ConnectToDatabase(databaseObject, 
+		DEFAULT_DATABASE_SERVER_ADDRESS, 
+		DEFAULT_DATABASE_USERNAME, 
+		DEFAULT_DATABASE_PASSWORD, 
+		DEFAULT_DATABASE_NAME))
+	{
+		// Did not connect
+		return false;
+	}
+
+	// Connection successful
+	return true;
 
 }
 
@@ -2562,13 +2583,13 @@ int main2()
 		mysql_close(databaseObject);
 	}
 
-	if (ConnectToDatabase(databaseObject, SERVER, USERNAME, PASSWORD, DEFAULTDATABASE))
+	if (ConnectToDatabase(databaseObject, DEFAULT_DATABASE_SERVER_ADDRESS, DEFAULT_DATABASE_USERNAME, DEFAULT_DATABASE_PASSWORD, DEFAULT_DATABASE_NAME))
 	{
-		printf("Connected to database: \"%s\"!\n\n", DEFAULTDATABASE);
+		printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
 	}
 	else
 	{
-		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULTDATABASE);
+		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
 		return EXIT_FAILURE;
 		// This is where the program goes to die, instead of the switch.
 	}
@@ -2778,17 +2799,31 @@ int main()
 		mysql_close(databaseObject);
 	}
 
+	// Used for logging in with program defaults
 
-	if (ConnectToDatabase(databaseObject, SERVER, USERNAME, PASSWORD, DEFAULTDATABASE))
+	if (DatabaseLoginWithProgramDefaults(databaseObject))
 	{
-		printf("Connected to database: \"%s\"!\n\n", DEFAULTDATABASE);
+		printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
 	}
 	else
 	{
-		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULTDATABASE);
+		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
 		return EXIT_FAILURE;
 		// This is where the program goes to die, instead of the switch.
 	}
+
+	// Used for logging in with user input
+
+	//if (DatabaseLoginWithUserInput(databaseObject))
+	//{
+	//	printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+	//}
+	//else
+	//{
+	//	printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+	//	return EXIT_FAILURE;
+	//	// This is where the program goes to die, instead of the switch.
+	//}
 
 
 	// CODE GOES HERE
@@ -2805,15 +2840,15 @@ int main()
 	//	printf("Add new customer so far so good!! - MAIN\n");
 	//}
 
-	//// CUSTOMER table READ
-	//if (!ReadCustomer(databaseObject))
-	//{
-	//	printf("failed to read customer - MAIN!!\n");
-	//}
-	//else
-	//{
-	//	printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
-	//}
+	// CUSTOMER table READ
+	if (!ReadCustomer(databaseObject))
+	{
+		printf("failed to read customer - MAIN!!\n");
+	}
+	else
+	{
+		printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
+	}
 
 
 
@@ -2848,14 +2883,14 @@ int main()
 	//}
 
 	// UPDATE CUSTOMER
-	if (!UpdateCustomerInformation(databaseObject))
-	{
-		printf("Failed to update customer information.\n");
-	}
-	else
-	{
-		printf("Customer information updated.\n");
-	}
+	//if (!UpdateCustomerInformation(databaseObject))
+	//{
+	//	printf("Failed to update customer information.\n");
+	//}
+	//else
+	//{
+	//	printf("Customer information updated.\n");
+	//}
 
 	//UpdateCustomerFirstName(databaseObject, 10, "Joe");
 
@@ -2872,9 +2907,6 @@ int main()
 
 	// CODE STOPS HERE
 
-
-
-	//DatabaseLoginWithUserInput();
 
 
 
