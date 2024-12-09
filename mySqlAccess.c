@@ -290,12 +290,12 @@ void GetString(char* buffer)
 {
 	// Please use printf before calling this function to ask for specific information
 	// This only gets a string that's it, no printfs in here!
-	while (getchar() != '\n' && getchar() != EOF);  // Clear input buffer
+	while (getchar() != '\n'); // Used to prevent new lines from being recognized, fixes big bugs in user input
 	if (fgets(buffer, MAX_STRING_SIZE, stdin) == NULL)
 	{
 		printf("Error reading input.\n");
 	}
-	// Clear new lines
+	// Clear new lines that somehow got through.
 	ClearCarriageReturn(buffer);
 }
 
