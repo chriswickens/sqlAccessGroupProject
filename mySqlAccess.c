@@ -66,13 +66,6 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
 
-// Old trash, keep incase its useful DELETE LATER
-bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber);
-bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck);
-bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
-//bool CheckRentalHistory(MYSQL* databaseObject);
-//bool AddNewRental(MYSQL* databaseObject);
-
 /*
 * SPECIFIC TABLE CRUD FUNCTION PROTOTYPES
 */
@@ -482,98 +475,6 @@ bool CheckRowResult(MYSQL_RES* resultToCheck)
 /*
 * DATABASE FUNCTIONS END
 */
-
-
-// Check if the staff exists
-/*
-*
-* CAN BE DELETED
-*
-*/
-bool StaffIdExistsQuery(MYSQL* databaseObject, int staffIdNumber)
-{
-	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
-
-	// Create the SQL query string and store it in the 'query' char array
-	sprintf(newQuery,
-		"SELECT * FROM staff\n"
-		"WHERE staff_id = %d; \n"
-		, staffIdNumber);
-
-	if (!SendQueryToDatabase(databaseObject, newQuery))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-
-// RETURNS true/false based on return of SENDQUERYTODB
-// PART ONE AFTER getting CUSTOMER_ID
-/*
-*
-* CAN BE DELETED
-*
-*/
-bool IsFilmAvailableQuery(MYSQL* databaseObject, int movieIdToCheck)
-{
-	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
-
-	// Create the SQL query string and store it in the 'query' char array
-	sprintf(newQuery,
-		"SELECT f.title, COUNT(i.inventory_id) AS available_inventory\n"
-		"FROM film f\n"
-		"JOIN inventory i ON f.film_id = i.film_id\n"
-		"LEFT JOIN rental r ON i.inventory_id = r.inventory_id AND r.return_date IS NULL\n"
-		"WHERE f.film_id = %d  -- Where the FILM ID GOES\n"
-		"GROUP BY f.film_id, f.title\n"
-		"HAVING COUNT(i.inventory_id) > COUNT(r.inventory_id);",
-		movieIdToCheck); // Pass the values in to use them in sprintf
-
-	// Send the query
-	if (!SendQueryToDatabase(databaseObject, newQuery))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-/*
-*
-* CAN BE DELETED
-*
-*/
-bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id)
-{
-	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
-
-	// Format the SQL query string and store it in the 'newQuery' array
-	sprintf(newQuery,
-		"SELECT r.rental_id, r.rental_date, r.return_date, f.title, c.first_name, c.last_name\n"
-		"FROM rental r\n"
-		"JOIN customer c ON r.customer_id = c.customer_id\n"
-		"JOIN inventory i ON r.inventory_id = i.inventory_id\n"
-		"JOIN film f ON i.film_id = f.film_id\n"
-		"WHERE r.customer_id = %d  -- Use 33 for testing, as above you added them to the database with an outstanding rental, two in fact.\n"
-		"AND r.return_date IS NULL;",
-		customer_id); // Pass the customer ID (33) for testing
-
-
-	// Send the query
-	if (!SendQueryToDatabase(databaseObject, newQuery))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-
 
 /*
 * ----------------------------------------------------
