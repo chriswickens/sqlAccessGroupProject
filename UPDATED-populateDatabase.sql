@@ -1,5 +1,18 @@
 USE bookstore;
 
+SELECT * FROM customer;
+
+UPDATE customer
+SET FirstName = 'Jonathan'
+WHERE CustomerId = 10; 
+
+UPDATE customer
+SET LastName = 'Paventi'
+WHERE CustomerId = 10;
+
+UPDATE customer
+SET email = 'jon.paventi@gmail.com'
+WHERE customerid = 10;
 
 -- INSERT ADDRESSES TO BE USED INTO ADDRESS TABLE
 -- These queries will 
