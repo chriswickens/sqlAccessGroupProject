@@ -1019,9 +1019,7 @@ bool UpdateCustomerFirstName(MYSQL* databaseObject, int customerId, char* firstN
 	char query[MAX_STRING_SIZE];
 
 	sprintf(query,
-		"UPDATE Customer\n"
-		"SET FirstName = TRIM(' ' FROM '%s')\n"
-		"WHERE CustomerId = %d\n", firstName, customerId);
+		"UPDATE customer SET FirstName = TRIM(' ' FROM '%s') WHERE CustomerId = '%d'", firstName, customerId);
 
 	if (!SendQueryToDatabase(databaseObject, query))
 	{
