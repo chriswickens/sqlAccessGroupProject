@@ -44,6 +44,7 @@
 // YEARMAX can be changed to allow books to be added before their release date
 // This will accomidate pre-orders for example
 #define YEARMAX 2024
+#define MAX_PUBLISHERS 999
 
 // Function prototypes
 // Tool Function Prototypes
@@ -1076,21 +1077,9 @@ bool CheckCustomerEmailExistsQuery(MYSQL* databaseObject, char* customerEmail)
 */
 
 // Create function
-
-
 bool CreateBookEntry(MYSQL* databaseObject)
 {
-	// Requirements:
-	/*
-	* title
-	* pagecount
-	* year
-	* price
-	* isbn
-	* publisherId (display publisher list to pick from)
-	*/
-
-	int publisherIds[100];
+	int publisherIds[MAX_PUBLISHERS];
 	int size = 0;
 
 	char bookTitle[MAX_STRING_SIZE] = { "\0" };
@@ -1100,10 +1089,6 @@ bool CreateBookEntry(MYSQL* databaseObject)
 	long long isbnNumber = 0;
 	int requestedPublisherId = 0;
 	bool goodPublisherId = false;
-	int publisherIdArray[999];
-
-
-	long long tempIsbn = 9781503280785;
 
 	// Get the ISBN number
 	printf("Please enter the ISBN of the book: ");
