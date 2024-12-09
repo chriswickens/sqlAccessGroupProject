@@ -56,11 +56,13 @@ bool NoWhitespaceCheck(char* name);
 bool ValidateEmailAddress(char* address);
 char PromptForYesOrNo();
 void ClearCarriageReturn(char buffer[]);
+void ClearInputBuffer();
 void GetDateFromUser(char dateString[]);
 void GetString(char* buffer);
 bool ValidatePostalCode(char* postalCode);
 
 // Database specific prototypes
+bool DatabaseLoginWithUserInput();
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
@@ -136,15 +138,15 @@ int GetIntegerFromUser()
 	char userInput[MAX_STRING_SIZE] = { 0 };
 	int inputAsInt = 0;
 	fgets(userInput, MAX_STRING_SIZE, stdin);
-	ClearCarriageReturn(userInput);
+	//ClearCarriageReturn(userInput);
 
 	while (sscanf(userInput, "%i", &inputAsInt) != 1 || inputAsInt < 0)
 	{
 		printf("Invalid entry, try again: ");
 		fgets(userInput, MAX_STRING_SIZE, stdin);
-		ClearCarriageReturn(userInput);
-	}
 
+	}
+	ClearCarriageReturn(userInput);
 	return inputAsInt;
 }
 
@@ -164,14 +166,38 @@ float GetFloatFromUser()
 // Function to get a 13-digit integer from the user
 long long int GetIsbnFromUser()
 {
-	long long int number;
-	while (scanf("%lld", &number) != 1 || number < 1000000000000LL || number > 9999999999999LL)
+	char userInput[MAX_STRING_SIZE] = { "\0" };
+	long long int isbnNumber = 0;
+
+	// Repeat until a valid ISBN is entered
+	while (1)
 	{
-		printf("Invalid input. Please enter a 13-digit ISBN number: ");
-		//while (getchar() != '\n'); // Clear the input buffer
+		printf("Please enter a 13-digit ISBN number: ");
+		fgets(userInput, MAX_STRING_SIZE, stdin);
+
+		// Remove the newline character that fgets may have added
+		ClearCarriageReturn(userInput);
+
+		// Try to convert the string to a long long int
+		if (sscanf(userInput, "%lld", &isbnNumber) == 1)
+		{
+			// Check if the number is 13 digits
+			if (isbnNumber >= 1000000000000LL && isbnNumber <= 9999999999999LL)
+			{
+				return isbnNumber;  // Valid ISBN
+			}
+			else
+			{
+				printf("Invalid input. ISBN must be a 13-digit number.\n");
+			}
+		}
+		else
+		{
+			printf("Invalid input. Please enter a valid 13-digit ISBN number.\n");
+		}
 	}
-	return number;
 }
+
 
 int GetBookYearFromUser()
 {
@@ -254,6 +280,11 @@ void ClearCarriageReturn(char buffer[])
 	}
 }
 
+void ClearInputBuffer()
+{
+	while (getchar() != '\n' && getchar() != EOF);  // Clear until newline or EOF
+}
+
 /*
 *
 * I DONT THINK WE NEED THIS? I dont think we have any date stuff?
@@ -295,15 +326,13 @@ void GetDateFromUser(char dateString[])
 
 void GetString(char* buffer)
 {
-	// Please use printf before calling this function to ask for specific information
-	// This only gets a string that's it, no printfs in here!
-	while (getchar() != '\n'); // Used to prevent new lines from being recognized, fixes big bugs in user input
-	if (fgets(buffer, MAX_STRING_SIZE, stdin) == NULL)
-	{
-		printf("Error reading input.\n");
-	}
-	// Clear new lines that somehow got through.
+	fgets(buffer, MAX_STRING_SIZE, stdin);
 	ClearCarriageReturn(buffer);
+	while (buffer[0] == '\n' || buffer[0] == '\0' || buffer[0] == ' ')
+	{
+		printf("Invalid input...try again.\n");
+		fgets(buffer, MAX_STRING_SIZE, stdin);
+	}
 }
 
 bool ValidatePostalCode(char* postalCode)
@@ -324,6 +353,8 @@ bool ValidatePostalCode(char* postalCode)
 }
 
 
+
+
 /*
 * TOOL FUNCTIONS END
 */
@@ -333,6 +364,36 @@ bool ValidatePostalCode(char* postalCode)
 * DATABASE FUNCTIONS START
 */
 
+bool DatabaseLoginWithUserInput()
+{
+	char serverAddress[MAX_STRING_SIZE] = { "\0" };
+	char userName[MAX_STRING_SIZE] = { "\0" };
+	char password[MAX_STRING_SIZE] = { "\0" };
+	char databaseName[MAX_STRING_SIZE] = { "\0" };
+
+	// Get the server
+	printf("Please enter the server address (Ex: 192.168.0.1, or localHost): ");
+	GetString(serverAddress);
+
+	// Get the username
+	printf("Please enter your user name: ");
+	GetString(userName);
+
+	// Get the password
+	printf("Please enter your password: ");
+	GetString(password);
+
+	// Get the database name
+	printf("Please enter the database name (Ex: bookstore): ");
+	GetString(databaseName);
+
+}
+
+bool DatabaseLoginWithProgramDefaults()
+{
+
+}
+
 // Function to connect to the database
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase)
 {
@@ -341,6 +402,7 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 		printf("Failed to connect to the DB: Error %s", mysql_error(databaseObject));
 		// Close connection
 		mysql_close(databaseObject);
+
 		return false;
 	}
 
@@ -2594,13 +2656,9 @@ int main()
 		printf("Error! DB is null!");
 		return EXIT_FAILURE;
 
-		/*
-		*
-		* THIS CLOSE MUST BE PUT INTO THE EXIT PATH OF THE SWITCH STATEMENT! THE DB MUST BE CLOSED!
-		*/
-
 		mysql_close(databaseObject);
 	}
+
 
 	if (ConnectToDatabase(databaseObject, SERVER, USERNAME, PASSWORD, DEFAULTDATABASE))
 	{
@@ -2661,30 +2719,30 @@ int main()
 	//}
 
 	// CREATE BOOK
-	//if (!CreateBookEntry(databaseObject))
-	//{
-	//	printf("Failed to add book!\n");
-	//}
-	//else
-	//{
-	//	printf("Book added successfully!\n");
-	//}
-
-	// CREATE ORDER
-	if (!CreateOrder(databaseObject))
+	if (!CreateBookEntry(databaseObject))
 	{
-		printf("Failed to create order!\n");
+		printf("Failed to add book!\n");
 	}
 	else
 	{
-		printf("Order created successfully!!\n");
+		printf("Book added successfully!\n");
 	}
+
+	// CREATE ORDER
+	//if (!CreateOrder(databaseObject))
+	//{
+	//	printf("Failed to create order!\n");
+	//}
+	//else
+	//{
+	//	printf("Order created successfully!!\n");
+	//}
 
 	// CODE STOPS HERE
 
 
 
-
+	DatabaseLoginWithUserInput();
 
 
 
