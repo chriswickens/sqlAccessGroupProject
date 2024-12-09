@@ -29,7 +29,7 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "cwickens01"
+#define PASSWORD "6741"
 #define DEFAULTDATABASE "bookstore"
 
 
@@ -950,14 +950,14 @@ bool SearchCustomerTableForEmail(MYSQL* databaseObject, char* emailToCheck)
 	}
 }
 
-bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name)
+bool UpdateCustomerFirstName(MYSQL* databaseObject, int customerId, char* firstName)
 {
 	char query[MAX_STRING_SIZE];
 
 	sprintf(query,
-		"UPDATE customer\n"
-		"SET first_name = TRIM(' ' FROM '%s')\n"
-		"WHERE customer_id = %d\n", customer_name, customer_id);
+		"UPDATE Customer\n"
+		"SET FirstName = TRIM(' ' FROM '%s')\n"
+		"WHERE CustomerId = %d\n", firstName, customerId);
 
 	if (!SendQueryToDatabase(databaseObject, query))
 	{
@@ -968,14 +968,14 @@ bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* custo
 	return true;
 }
 
-bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* customer_lastName)
+bool UpdateCustomerLastName(MYSQL* databaseObject, int customerId, char* lastName)
 {
 	char query[MAX_STRING_SIZE];
 
 	sprintf(query,
 		"UPDATE customer\n"
-		"SET last_name = TRIM(' ' FROM '%s')\n"
-		"WHERE customer_id = %d", customer_lastName, customer_id);
+		"SET lastname = TRIM(' ' FROM '%s')\n"
+		"WHERE customerid = %d", lastName, customerId);
 
 	if (!SendQueryToDatabase(databaseObject, query))
 	{
@@ -986,14 +986,14 @@ bool UpdateCustomerLastName(MYSQL* databaseObject, int customer_id, char* custom
 	return true;
 }
 
-bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email)
+bool UpdateCustomerEmail(MYSQL* databaseObject, int customerId, char* customerEmail)
 {
 	char query[MAX_STRING_SIZE];
 
 	sprintf(query,
 		"UPDATE customer\n"
 		"SET email = '%s'\n"
-		"WHERE customer_id = %d", customer_email, customer_id);
+		"WHERE customerid = %d", customerEmail, customerId);
 
 
 	if (!SendQueryToDatabase(databaseObject, query))
@@ -1005,14 +1005,14 @@ bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_
 	return true;
 }
 
-bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id)
+bool UpdateCustomerAddressId(MYSQL* databaseObject, int customerId, int addressId)
 {
 	char query[MAX_STRING_SIZE];
 
 	sprintf(query,
 		"UPDATE customer\n"
-		"SET address_id = %d\n"
-		"WHERE customer_id = %d", address_id, customer_id);
+		"SET addressid = %d\n"
+		"WHERE customerid = %d", addressId, customerId);
 
 	if (!SendQueryToDatabase(databaseObject, query))
 	{
@@ -2426,13 +2426,23 @@ int main()
 	//}
 
 	// CREATE BOOK
-	if (!CreateBookEntry(databaseObject))
+	//if (!CreateBookEntry(databaseObject))
+	//{
+	//	printf("Failed to add book!\n");
+	//}
+	//else
+	//{
+	//	printf("Book added successfully!\n");
+	//}
+
+	// UPDATE CUSTOMER
+	if (!UpdateCustomerInformation(databaseObject))
 	{
-		printf("Failed to add book!\n");
+		printf("Failed to update customer information.\n");
 	}
 	else
 	{
-		printf("Book added successfully!\n");
+		printf("Customer information updated.\n");
 	}
 
 
