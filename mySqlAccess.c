@@ -145,7 +145,7 @@ int GetIntegerFromUser()
 		fgets(userInput, MAX_STRING_SIZE, stdin);
 	}
 
-	clearCarriageReturn(userInput);
+	ClearCarriageReturn(userInput);
 	return inputAsInt;
 }
 
