@@ -29,7 +29,7 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "6741"
+#define PASSWORD "Sah@-123"
 #define DEFAULTDATABASE "bookstore"
 
 
@@ -102,6 +102,14 @@ bool CreateBookEntry(MYSQL* databaseObject);
 
 // READ
 bool ReadBookTable(MYSQL* databaseObject);
+
+// UPDATE
+
+// DELETE
+void deleteBookImplication(void);
+bool CheckBookIdExistsQuery(MYSQL* databaseObject, int bookIdNumber);
+bool DeleteBookRecord(MYSQL* databaseObject);
+
 
 /*
 * MISC Book table functions
@@ -2171,7 +2179,18 @@ bool DeleteBookRecord(MYSQL* databaseObject)
 		}
 		printf("AuthorBook records deletion successful!\n");
 
-		// Delete OrderProduct records
+		// Delete OrderProduct records where OnlineOrderId has multiple books, including this book
+		char deleteMultipleOnlineOrderQuery[MAX_STRING_SIZE];
+		sprintf(deleteMultipleOnlineOrderQuery, "DELETE FROM OrderProduct WHERE OnlineOrderId IN (SELECT OnlineOrderId FROM OnlineOrder WHERE BookId = %d); ", bookIdToCheck);
+
+		if (!SendQueryToDatabase(databaseObject, deleteMultipleOnlineOrderQuery))
+		{
+			printf("OrderProduct records where OnlineOrderId containing multiple books, but including this book ID deletion failed!\n");
+			return false;
+		}
+		printf("OrderProduct records where OnlineOrderId containing multiple books, but including this book ID deletion successful!\n");	
+		
+		// Delete OrderProduct records that only have this book as part of its order
 		char deleteOrderProductQuery[MAX_STRING_SIZE];
 		sprintf(deleteOrderProductQuery, "DELETE FROM OrderProduct WHERE BookId = %d;", bookIdToCheck);
 
@@ -2235,6 +2254,159 @@ bool DeleteBookRecord(MYSQL* databaseObject)
 	return true;
 }
 
+
+
+
+// Delete order functions
+
+// Delete order implications message
+void deleteOrderImplication(void)
+{
+	printf("You have chosen to delete an order's record.\n\n");
+	printf("Doing so will have the following effects:\n");
+	printf("\t1) OnlineOrder's details will be permanently deleted from the database.\n");
+	printf("\t2) OrderProduct relating to this order will be permanently deleted from the database.\n");
+
+	printf("Would you like to proceed with deleting a order?\n\n");
+	printf("Enter 'Y' to proceed or any input to cancel.\n");
+}
+
+
+// Function to see if order exists based on ID
+bool CheckOrderIdExistsQuery(MYSQL* databaseObject, int orderIdNumber)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery,
+		"SELECT * FROM onlineorder\n"
+		"WHERE OnlineOrderId = %d; \n"
+		, orderIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+
+/*
+*
+* CAN BE REUSED at some level, some changes will need to be made
+* Must check if OnlineOrder is using customerID, cannot delete if being used in onlineOrder
+* Should it delete the address associated with the customer?
+*
+*
+*/
+bool DeleteOrderRecord(MYSQL* databaseObject)
+{
+	// Prompt user to confirm deleting an order and explain implications.
+	deleteOrderImplication();
+
+	// Get input from user
+	char yesOrNo[MAX_STRING_SIZE] = { "" };
+	fgets(yesOrNo, sizeof(yesOrNo), stdin);
+
+	// If user enters 'y', then continue with deletion logic. Otherwise, cancel deletion.
+	if (strcmp(yesOrNo, "Y\n") == 0)
+	{
+		// Clear screen
+		system("cls");
+
+		// Prompt order id
+		printf("You've chosen to proceed with deletion.\n\n");
+		printf("Please enter the order's ID:");
+		int orderIdToCheck = GetIntegerFromUser(); // The ID to check
+
+		// Check order Id
+		if (!CheckOrderIdExistsQuery(databaseObject, orderIdToCheck))
+		{
+			// The query was NOT valid!
+			printf("Failed to find order in the database!\n");
+			return false;
+		}
+		// The query was valid
+		else
+		{
+			// Store the result from the query
+			MYSQL_RES* orderResult = mysql_store_result(databaseObject);
+
+			// If the result is null, there was no result
+			if (orderResult == NULL)
+			{
+				// Print the SQL error
+				printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+				return false;
+			}
+
+			// If the result has NO rows, the order didnt exist
+			if (!CheckRowResult(orderResult))
+			{
+				printf("Order with ID %d does not exist.\n", orderIdToCheck);
+				return false;
+			}
+			// The result has at LEAST ONE row, the order DOES exist!
+			else
+			{
+				MYSQL_ROW orderRow; // Get the rows using MYSQL_ROW for printing
+				// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+				while ((orderRow = mysql_fetch_row(orderResult)) != NULL)
+				{
+					printf("OnlineOrder ID: Records found: OnlineOrder ID: %s, OrderDate: %s\n\n", orderRow[0], orderRow[2]);
+				}
+			}
+			// Free the result for the customer so memory isnt still consumed by it
+			mysql_free_result(orderResult);
+		}
+
+		// If order ID exists, proceed to delete any records related to the order
+
+		// Notify user that order's information is being deleted
+		printf("\nProceeding to delete order's records...\n\n");
+
+		// Delete OrderProduct records
+		char deleteOrderProductQuery[MAX_STRING_SIZE];
+		sprintf(deleteOrderProductQuery, "DELETE FROM OrderProduct WHERE OnlineOrderId = %d;", orderIdToCheck);
+
+		if (!SendQueryToDatabase(databaseObject, deleteOrderProductQuery))
+		{
+			printf("OrderProduct records deletion failed!\n");
+			return false;
+		}
+		printf("OrderProduct records deletion successful!\n");
+
+		// Delete OnlineOrder records
+		char deleteOnlineOrderQuery[MAX_STRING_SIZE];
+		sprintf(deleteOnlineOrderQuery, "DELETE FROM OnlineOrder WHERE OnlineOrderId = 1;", orderIdToCheck);
+
+		if (!SendQueryToDatabase(databaseObject, deleteOnlineOrderQuery))
+		{
+			printf("OnlineOrder records deletion failed!\n");
+			return false;
+		}
+		printf("OnlineOrder records deletion successful!\n");
+
+
+		printf("Deletion process concluded.\n");
+
+		return true;
+
+
+	}
+	else  // User chose to cancel deletion so cancel the deletion and exit
+	{
+		system("cls");
+		printf("Deletion Process cancelled...\n");
+
+		return false;
+	}
+
+	// Deleted the book, return true!
+	return true;
+}
 
 
 
@@ -2710,14 +2882,14 @@ int main()
 	//}
 
 	// UPDATE CUSTOMER
-	if (!UpdateCustomerInformation(databaseObject))
-	{
-		printf("Failed to update customer information.\n");
-	}
-	else
-	{
-		printf("Customer information updated.\n");
-	}
+	//if (!UpdateCustomerInformation(databaseObject))
+	//{
+	//	printf("Failed to update customer information.\n");
+	//}
+	//else
+	//{
+	//	printf("Customer information updated.\n");
+	//}
 
 	// CREATE ORDER
 	//if (!CreateOrder(databaseObject))
@@ -2731,7 +2903,15 @@ int main()
 
 	// CODE STOPS HERE
 
-
+	printf("\nDeleting a book Record - Selected item \n");
+	if (!DeleteBookRecord(databaseObject))
+	{
+		printf("Did not delete customer!\n\n");
+	}
+	else
+	{
+		printf("Book deletion successful!!\n\n");
+	}
 
 	//DatabaseLoginWithUserInput();
 
