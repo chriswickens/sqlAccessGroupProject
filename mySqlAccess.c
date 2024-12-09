@@ -44,7 +44,7 @@
 // YEARMAX can be changed to allow books to be added before their release date
 // This will accomidate pre-orders for example
 #define YEARMAX 2024
-#define MAX_PUBLISHERS 999
+#define MAX_DATABASE_TABLE_ROWS 999
 
 // Function prototypes
 // Tool Function Prototypes
@@ -56,11 +56,13 @@ bool NoWhitespaceCheck(char* name);
 bool ValidateEmailAddress(char* address);
 char PromptForYesOrNo();
 void ClearCarriageReturn(char buffer[]);
+void ClearInputBuffer();
 void GetDateFromUser(char dateString[]);
 void GetString(char* buffer);
 bool ValidatePostalCode(char* postalCode);
 
 // Database specific prototypes
+bool DatabaseLoginWithUserInput();
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase);
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString);
 bool CheckRowResult(MYSQL_RES* resultToCheck);
@@ -108,6 +110,11 @@ bool CheckBookTableIsbnExists(MYSQL* databaseObject, long long isbnToCheck);
 
 
 // Order table function prototypes
+
+// CREATE
+bool CreateOrder(MYSQL* databaseObject);
+
+// READ
 bool ReadOrderTable(MYSQL* databaseObject);
 
 /*
@@ -117,7 +124,9 @@ bool AddNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, ch
 bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName);
 bool CheckBookIsbnExistsQuery(MYSQL* databaseObject, long long isbnNumber);
 bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetName, char* addressId);
-bool ReadPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size);
+bool ReadAndGetPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size);
+bool ReadAndGetBookTable(MYSQL* databaseObject, int* bookIds, int* size);
+bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size);
 
 
 /*
@@ -126,18 +135,17 @@ bool ReadPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size);
 
 int GetIntegerFromUser()
 {
-	char userInput[MAX_STRING_SIZE] = { 0 };
+	char userInput[MAX_STRING_SIZE] = { "\0" };
 	int inputAsInt = 0;
 	fgets(userInput, MAX_STRING_SIZE, stdin);
-	ClearCarriageReturn(userInput);
 
-	while (sscanf(userInput, "%i", &inputAsInt) != 1 || inputAsInt < 0)
+	while (sscanf(userInput, "%i", &inputAsInt) != 1)
 	{
 		printf("Invalid entry, try again: ");
 		fgets(userInput, MAX_STRING_SIZE, stdin);
-		ClearCarriageReturn(userInput);
 	}
 
+	clearCarriageReturn(userInput);
 	return inputAsInt;
 }
 
@@ -157,14 +165,38 @@ float GetFloatFromUser()
 // Function to get a 13-digit integer from the user
 long long int GetIsbnFromUser()
 {
-	long long int number;
-	while (scanf("%lld", &number) != 1 || number < 1000000000000LL || number > 9999999999999LL)
+	char userInput[MAX_STRING_SIZE] = { "\0" };
+	long long int isbnNumber = 0;
+
+	// Repeat until a valid ISBN is entered
+	while (1)
 	{
-		printf("Invalid input. Please enter a 13-digit ISBN number: ");
-		//while (getchar() != '\n'); // Clear the input buffer
+		printf("Please enter a 13-digit ISBN number: ");
+		fgets(userInput, MAX_STRING_SIZE, stdin);
+
+		// Remove the newline character that fgets may have added
+		ClearCarriageReturn(userInput);
+
+		// Try to convert the string to a long long int
+		if (sscanf(userInput, "%lld", &isbnNumber) == 1)
+		{
+			// Check if the number is 13 digits
+			if (isbnNumber >= 1000000000000LL && isbnNumber <= 9999999999999LL)
+			{
+				return isbnNumber;  // Valid ISBN
+			}
+			else
+			{
+				printf("Invalid input. ISBN must be a 13-digit number.\n");
+			}
+		}
+		else
+		{
+			printf("Invalid input. Please enter a valid 13-digit ISBN number.\n");
+		}
 	}
-	return number;
 }
+
 
 int GetBookYearFromUser()
 {
@@ -247,6 +279,7 @@ void ClearCarriageReturn(char buffer[])
 	}
 }
 
+
 /*
 *
 * I DONT THINK WE NEED THIS? I dont think we have any date stuff?
@@ -288,15 +321,13 @@ void GetDateFromUser(char dateString[])
 
 void GetString(char* buffer)
 {
-	// Please use printf before calling this function to ask for specific information
-	// This only gets a string that's it, no printfs in here!
-	while (getchar() != '\n'); // Used to prevent new lines from being recognized, fixes big bugs in user input
-	if (fgets(buffer, MAX_STRING_SIZE, stdin) == NULL)
-	{
-		printf("Error reading input.\n");
-	}
-	// Clear new lines that somehow got through.
+	fgets(buffer, MAX_STRING_SIZE, stdin);
 	ClearCarriageReturn(buffer);
+	while (buffer[0] == '\n' || buffer[0] == '\0' || buffer[0] == ' ')
+	{
+		printf("Invalid input...try again.\n");
+		fgets(buffer, MAX_STRING_SIZE, stdin);
+	}
 }
 
 bool ValidatePostalCode(char* postalCode)
@@ -317,6 +348,8 @@ bool ValidatePostalCode(char* postalCode)
 }
 
 
+
+
 /*
 * TOOL FUNCTIONS END
 */
@@ -326,6 +359,36 @@ bool ValidatePostalCode(char* postalCode)
 * DATABASE FUNCTIONS START
 */
 
+bool DatabaseLoginWithUserInput()
+{
+	char serverAddress[MAX_STRING_SIZE] = { "\0" };
+	char userName[MAX_STRING_SIZE] = { "\0" };
+	char password[MAX_STRING_SIZE] = { "\0" };
+	char databaseName[MAX_STRING_SIZE] = { "\0" };
+
+	// Get the server
+	printf("Please enter the server address (Ex: 192.168.0.1, or localHost): ");
+	GetString(serverAddress);
+
+	// Get the username
+	printf("Please enter your user name: ");
+	GetString(userName);
+
+	// Get the password
+	printf("Please enter your password: ");
+	GetString(password);
+
+	// Get the database name
+	printf("Please enter the database name (Ex: bookstore): ");
+	GetString(databaseName);
+
+}
+
+bool DatabaseLoginWithProgramDefaults()
+{
+
+}
+
 // Function to connect to the database
 bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char* password, char* defaultDatabase)
 {
@@ -334,6 +397,7 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 		printf("Failed to connect to the DB: Error %s", mysql_error(databaseObject));
 		// Close connection
 		mysql_close(databaseObject);
+
 		return false;
 	}
 
@@ -1079,7 +1143,7 @@ bool CheckCustomerEmailExistsQuery(MYSQL* databaseObject, char* customerEmail)
 // Create function
 bool CreateBookEntry(MYSQL* databaseObject)
 {
-	int publisherIds[MAX_PUBLISHERS];
+	int publisherIds[MAX_DATABASE_TABLE_ROWS];
 	int size = 0;
 
 	char bookTitle[MAX_STRING_SIZE] = { "\0" };
@@ -1126,7 +1190,7 @@ bool CreateBookEntry(MYSQL* databaseObject)
 	printf("Year: %.2lf\n", bookPrice);
 
 	// Show list of possible publisher IDs
-	if (!ReadPublisherTable(databaseObject, publisherIds, &size))
+	if (!ReadAndGetPublisherTable(databaseObject, publisherIds, &size))
 	{
 		printf("ERROR reading PUBLISHER table! Please contact support...\n");
 		return false;
@@ -1173,7 +1237,7 @@ bool CreateBookEntry(MYSQL* databaseObject)
 		// Error
 		return false;
 	}
-	
+
 	// Added successfully
 	return true;
 }
@@ -1285,6 +1349,117 @@ bool CheckBookTableIsbnExists(MYSQL* databaseObject, long long isbnToCheck)
 */
 
 // Create function
+bool CreateOrder(MYSQL* databaseObject)
+{
+	// Used to verify proper bookid is used
+	int bookIds[MAX_DATABASE_TABLE_ROWS];
+	int bookArraySize = 0;
+	int requestedBookId = 0;
+	bool goodBookId = false;
+
+	// Used to verify proper customerid is used
+	int customerIds[MAX_DATABASE_TABLE_ROWS];
+	int customerArraySize = 0;
+	int requestedCustomerId = 0;
+	bool goodCustomerId = false;
+
+	// Order variables
+	int bookQuantity = 0;
+
+	// Show customer Ids
+	if (!ReadAndGetCustomerTable(databaseObject, customerIds, &customerArraySize))
+	{
+		printf("ERROR reading CUSTOMER table! Please contact support...\n");
+		return false;
+	}
+
+	// Make sure the user picks a valid customerId for the book
+	while (!goodCustomerId)
+	{
+		// Get the user input for the customer they want
+		printf("Please pick a customerId from the above list to tie the order to: ");
+		requestedCustomerId = GetIntegerFromUser();
+
+		// CHECK to ensure they selected a valid bookId
+		for (int i = 0; i < customerArraySize; i++)
+		{
+			if (requestedCustomerId == customerIds[i])
+			{
+				goodCustomerId = true;
+				break;
+			}
+		}
+
+		if (!goodCustomerId)
+		{
+			printf("Invalid CUSTOMER ID, do you want to exit adding a new order?\n");
+			char response = PromptForYesOrNo();
+			if (response == 'Y' || response == 'y')
+			{
+				printf("Exiting adding new ORDER, returning to main menu...\n");
+				return false;
+			}
+		}
+	}
+
+	// Show the bookids
+	if (!ReadAndGetBookTable(databaseObject, bookIds, &bookArraySize))
+	{
+		printf("ERROR reading BOOK table! Please contact support...\n");
+		return false;
+	}
+
+	// Make sure the user picks a valid publisherId for the book
+	while (!goodBookId)
+	{
+		// Get the user input for the publisher they want
+		printf("Please pick a bookId from the above list: ");
+		requestedBookId = GetIntegerFromUser();
+
+		// CHECK to ensure they selected a valid bookId
+		for (int i = 0; i < bookArraySize; i++)
+		{
+			//printf("PublisherId[%d]: %d\n", i, publisherIds[i]);
+			if (requestedBookId == bookIds[i])
+			{
+				goodBookId = true;
+				break;
+			}
+		}
+
+		if (!goodBookId)
+		{
+			printf("Invalid BOOK ID, do you want to exit adding a new order?\n");
+			char response = PromptForYesOrNo();
+			if (response == 'Y' || response == 'y')
+			{
+				printf("Exiting adding new ORDER, returning to main menu...\n");
+				return false;
+			}
+		}
+	}
+
+	// How many of that book do they want to order?
+	printf("Please enter the quantity for the number of books: ");
+	bookQuantity = GetIntegerFromUser();
+
+	// Create the onlineOrder
+	char query[MAX_STRING_SIZE] = { "\0" };
+	sprintf(query,
+		"INSERT INTO OnlineOrder (Quantity, OrderDate, BookId, CustomerId) "
+		"VALUES ('%d', NOW(), '%d', '%d');",
+		bookQuantity, requestedBookId, requestedCustomerId);
+
+	// Send the query to the database
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Error adding it to the DB
+		return false;
+	}
+
+	// Added to the DB!
+	return true;
+}
 
 // Read function COMPLETED
 bool ReadOrderTable(MYSQL* databaseObject)
@@ -1469,7 +1644,7 @@ bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetNam
 
 }
 
-bool ReadPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size)
+bool ReadAndGetPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size)
 {
 	char readPublisherTableQuery[MAX_STRING_SIZE];
 
@@ -1528,6 +1703,123 @@ bool ReadPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size)
 	return true;
 }
 
+bool ReadAndGetBookTable(MYSQL* databaseObject, int* bookIds, int* size)
+{
+	char readBookTableQuery[MAX_STRING_SIZE];
+
+	// Create the SQL query string to read all publishers ordered by PublisherId
+	sprintf(readBookTableQuery,
+		"SELECT * FROM book ORDER BY bookid;");
+
+	// Send the query to the database
+	if (!SendQueryToDatabase(databaseObject, readBookTableQuery))
+	{
+		printf("ORDER read table unsuccessful!\n");
+		return false;
+	}
+
+	// Store the result from the query
+	MYSQL_RES* bookTableResult = mysql_store_result(databaseObject);
+
+	// If the result is NULL, there was an error
+	if (bookTableResult == NULL)
+	{
+		printf("SQL Query Execution problem, ERROR: %s\n", mysql_error(databaseObject));
+		return false;
+	}
+
+	// If no rows, print a message and return
+	if (mysql_num_rows(bookTableResult) == 0)
+	{
+		printf("Nothing to read from BOOK table!\n");
+		return false;
+	}
+
+	printf("----------- START READ FROM BOOK TABLE -----------\n");
+
+	// Initialize the size of publisherIds to 0
+	*size = 0;
+
+	MYSQL_ROW bookRow;
+	// Iterate through rows and store PublisherId in the array
+	while ((bookRow = mysql_fetch_row(bookTableResult)) != NULL)
+	{
+		// Assuming publisherRow[0] is the PublisherId (as string) and needs to be converted to int
+		int bookId = atoi(bookRow[0]);  // Convert PublisherId to int
+
+		// Store the PublisherId in the array
+		bookIds[*size] = bookId;
+		(*size)++;  // Increment the size of the array
+
+		// Print PublisherId and PublisherName for debug purposes
+		printf("bookId: %s - Book Title: %s\n", bookRow[0], bookRow[1]);
+	}
+
+	printf("----------- END READ FROM BOOK TABLE -----------\n");
+
+	// Free the result to avoid memory leaks
+	mysql_free_result(bookTableResult);
+	return true;
+}
+
+bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size)
+{
+	char readCustomerTableQuery[MAX_STRING_SIZE];
+
+	// Create the SQL query string to read all publishers ordered by PublisherId
+	sprintf(readCustomerTableQuery,
+		"SELECT * FROM customer ORDER BY customerid;");
+
+	// Send the query to the database
+	if (!SendQueryToDatabase(databaseObject, readCustomerTableQuery))
+	{
+		printf("ORDER read table unsuccessful!\n");
+		return false;
+	}
+
+	// Store the result from the query
+	MYSQL_RES* customerTableResult = mysql_store_result(databaseObject);
+
+	// If the result is NULL, there was an error
+	if (customerTableResult == NULL)
+	{
+		printf("SQL Query Execution problem, ERROR: %s\n", mysql_error(databaseObject));
+		return false;
+	}
+
+	// If no rows, print a message and return
+	if (mysql_num_rows(customerTableResult) == 0)
+	{
+		printf("Nothing to read from BOOK table!\n");
+		return false;
+	}
+
+	printf("----------- START READ FROM CUSTOMER TABLE -----------\n");
+
+	// Initialize the size of publisherIds to 0
+	*size = 0;
+
+	MYSQL_ROW customerRow;
+	// Iterate through rows and store PublisherId in the array
+	while ((customerRow = mysql_fetch_row(customerTableResult)) != NULL)
+	{
+		// Assuming publisherRow[0] is the PublisherId (as string) and needs to be converted to int
+		int customerId = atoi(customerRow[0]);  // Convert PublisherId to int
+
+		// Store the PublisherId in the array
+		customerIds[*size] = customerId;
+		(*size)++;  // Increment the size of the array
+
+		// Print PublisherId and PublisherName for debug purposes
+		printf("customerId: %s - Customer Email: %s - Customer Name: %s %s\n", customerRow[0], customerRow[1], customerRow[2], customerRow[3]);
+	}
+
+	printf("----------- END READ FROM CUSTOMER TABLE -----------\n");
+
+	// Free the result to avoid memory leaks
+	mysql_free_result(customerTableResult);
+	return true;
+}
 
 
 
@@ -2359,13 +2651,9 @@ int main()
 		printf("Error! DB is null!");
 		return EXIT_FAILURE;
 
-		/*
-		*
-		* THIS CLOSE MUST BE PUT INTO THE EXIT PATH OF THE SWITCH STATEMENT! THE DB MUST BE CLOSED!
-		*/
-
 		mysql_close(databaseObject);
 	}
+
 
 	if (ConnectToDatabase(databaseObject, SERVER, USERNAME, PASSWORD, DEFAULTDATABASE))
 	{
@@ -2445,12 +2733,21 @@ int main()
 		printf("Customer information updated.\n");
 	}
 
+	// CREATE ORDER
+	//if (!CreateOrder(databaseObject))
+	//{
+	//	printf("Failed to create order!\n");
+	//}
+	//else
+	//{
+	//	printf("Order created successfully!!\n");
+	//}
 
 	// CODE STOPS HERE
 
 
 
-
+	DatabaseLoginWithUserInput();
 
 
 
