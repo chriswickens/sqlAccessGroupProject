@@ -29,7 +29,7 @@
 // Connection details
 #define SERVER "localhost"
 #define USERNAME "root"
-#define PASSWORD "cwickens01"
+#define PASSWORD "6741"
 #define DEFAULTDATABASE "bookstore"
 
 
@@ -1035,7 +1035,7 @@ bool UpdateCustomerFirstName(MYSQL* databaseObject, int customerId, char* firstN
 	char query[MAX_STRING_SIZE];
 
 	sprintf(query,
-		"UPDATE customer SET FirstName = TRIM(' ' FROM '%s') WHERE CustomerId = '%d'", firstName, customerId);
+		"UPDATE customer SET FirstName = 'FartHead' WHERE CustomerId = '10';");
 
 	if (!SendQueryToDatabase(databaseObject, query))
 	{
@@ -2710,14 +2710,14 @@ int main()
 	//}
 
 	// UPDATE CUSTOMER
-	//if (!UpdateCustomerInformation(databaseObject))
-	//{
-	//	printf("Failed to update customer information.\n");
-	//}
-	//else
-	//{
-	//	printf("Customer information updated.\n");
-	//}
+	if (!UpdateCustomerInformation(databaseObject))
+	{
+		printf("Failed to update customer information.\n");
+	}
+	else
+	{
+		printf("Customer information updated.\n");
+	}
 
 	// CREATE ORDER
 	//if (!CreateOrder(databaseObject))
@@ -2733,7 +2733,7 @@ int main()
 
 
 
-	DatabaseLoginWithUserInput();
+	//DatabaseLoginWithUserInput();
 
 
 
