@@ -42,7 +42,7 @@
 // Do not remove these, used for final project
 #define YEARMIN 1900
 // YEARMAX can be changed to allow books to be added before their release date
-// This will accomidate pre-orders for example
+// This will accommodate pre-orders for example
 #define YEARMAX 2024
 #define MAX_DATABASE_TABLE_ROWS 999
 
@@ -76,51 +76,45 @@ bool OutstandingRentalsQuery(MYSQL* databaseObject, int customer_id);
 
 /*
 * SPECIFIC TABLE CRUD FUNCTION PROTOTYPES
-* PLEASE: Organize in CRUD as much as possible
 */
-// Customer table function prototypes
+
+// CUSTOMER Table CRUD
+// Create
+bool CreateCustomer(MYSQL* databaseObject);
+
+// Read
+bool ReadCustomerTable(MYSQL* databaseObject);
 bool CheckCustomerIdExistsQuery(MYSQL* databaseObject, int customerIdNumber);
 bool CheckCustomerEmailExistsQuery(MYSQL* databaseObject, char* customerEmail);
 bool SearchCustomerTableForEmail(MYSQL* databaseObject, char* emailToCheck);
 
-// Create
-bool CreateCustomer(MYSQL* databaseObject);
-// Read
-bool ReadCustomer(MYSQL* databaseObject);
-
-
+// Update
 bool UpdateCustomerInformation(MYSQL* databaseObject);
 bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
 bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
 bool UpdateCustomerEmail(MYSQL* databaseObject, int customer_id, char* customer_email);
 bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address_id);
+
+// Delete
 bool DeleteCustomerRecord(MYSQL* databaseObject);
 
-// BOOK table function prototypes
+
+// BOOK table CRUD
 // CREATE
 bool CreateBookEntry(MYSQL* databaseObject);
 
 // READ
 bool ReadBookTable(MYSQL* databaseObject);
-
-/*
-* MISC Book table functions
-*/
 bool CheckBookTableIsbnExists(MYSQL* databaseObject, long long isbnToCheck);
 
 
-// Order table function prototypes
-
+// Order table CRUD
 // CREATE
 bool CreateOrder(MYSQL* databaseObject);
+bool CreateNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, char* postalCode);
 
 // READ
 bool ReadOrderTable(MYSQL* databaseObject);
-
-/*
-* MISC Database Functions
-*/
-bool AddNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, char* postalCode);
 bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName);
 bool CheckBookIsbnExistsQuery(MYSQL* databaseObject, long long isbnNumber);
 bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetName, char* addressId);
@@ -128,11 +122,29 @@ bool ReadAndGetPublisherTable(MYSQL* databaseObject, int* publisherIds, int* siz
 bool ReadAndGetBookTable(MYSQL* databaseObject, int* bookIds, int* size);
 bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size);
 
+// UPDATE
+
+// DELETE
+
+
 
 /*
-* TOOL FUNCTIONS START
+* TOOL FUNCTIONS
 */
 
+// Get a string from the user
+void GetString(char* buffer)
+{
+	fgets(buffer, MAX_STRING_SIZE, stdin);
+	ClearCarriageReturn(buffer);
+	while (buffer[0] == '\n' || buffer[0] == '\0' || buffer[0] == ' ')
+	{
+		printf("Invalid input...try again.\n");
+		fgets(buffer, MAX_STRING_SIZE, stdin);
+	}
+}
+
+// Get an integer from the user
 int GetIntegerFromUser()
 {
 	char userInput[MAX_STRING_SIZE] = { "\0" };
@@ -176,9 +188,7 @@ float GetFloatFromUser()
 	}
 }
 
-
 // Function to get ISBN (13 digit unique book ID)
-// Function to get a 13-digit integer from the user
 long long int GetIsbnFromUser()
 {
 	char userInput[MAX_STRING_SIZE] = { "\0" };
@@ -213,7 +223,7 @@ long long int GetIsbnFromUser()
 	}
 }
 
-
+// Get a 4 digit year from the user
 int GetBookYearFromUser()
 {
 	int year;
@@ -225,6 +235,7 @@ int GetBookYearFromUser()
 	return year;
 }
 
+// Check for white space in a string
 bool NoWhitespaceCheck(char* name)
 {
 	int asciiValue = ' ';								// character we are searching for
@@ -239,26 +250,7 @@ bool NoWhitespaceCheck(char* name)
 	return true;
 }
 
-bool ValidateEmailAddress(char* address)
-{
-	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
-	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
-	char* dotCom = NULL;							// pointer used for strstr function
-	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
-	char* pointer = NULL;							// pointer used for strchr function
-
-	pointer = strchr(address, ch);					// searches the user input email address for the '@'
-	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
-
-	// if either pointer is null, aka it did not find the occurrence of those requirements
-	if (pointer == NULL || dotCom == NULL)
-	{
-		return false;
-	}
-
-	return true;
-}
-
+// Prompt for Y/N user choices
 char PromptForYesOrNo()
 {
 	char input;
@@ -295,6 +287,44 @@ void ClearCarriageReturn(char buffer[])
 	}
 }
 
+// Basic email validation
+bool ValidateEmailAddress(char* address)
+{
+	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
+	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
+	char* dotCom = NULL;							// pointer used for strstr function
+	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
+	char* pointer = NULL;							// pointer used for strchr function
+
+	pointer = strchr(address, ch);					// searches the user input email address for the '@'
+	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
+
+	// if either pointer is null, aka it did not find the occurrence of those requirements
+	if (pointer == NULL || dotCom == NULL)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+// Basic postal code validation
+bool ValidatePostalCode(char* postalCode)
+{
+	// Check all the stuff
+	if (strlen(postalCode) != 6 ||
+		!isalpha(postalCode[0]) ||
+		!isdigit(postalCode[1]) ||
+		!isalpha(postalCode[2]) ||
+		!isdigit(postalCode[3]) ||
+		!isalpha(postalCode[4]) ||
+		!isdigit(postalCode[5]))
+	{
+		return false;  // Invalid postal code
+	}
+
+	return true;  // Valid postal code
+}
 
 /*
 *
@@ -335,46 +365,13 @@ void GetDateFromUser(char dateString[])
 	sprintf(dateString, "%d-%02d-%02d", userYear, userMonth, userDay);
 }
 
-void GetString(char* buffer)
-{
-	fgets(buffer, MAX_STRING_SIZE, stdin);
-	ClearCarriageReturn(buffer);
-	while (buffer[0] == '\n' || buffer[0] == '\0' || buffer[0] == ' ')
-	{
-		printf("Invalid input...try again.\n");
-		fgets(buffer, MAX_STRING_SIZE, stdin);
-	}
-}
-
-bool ValidatePostalCode(char* postalCode)
-{
-	// Check all the stuff
-	if (strlen(postalCode) != 6 ||
-		!isalpha(postalCode[0]) ||
-		!isdigit(postalCode[1]) ||
-		!isalpha(postalCode[2]) ||
-		!isdigit(postalCode[3]) ||
-		!isalpha(postalCode[4]) ||
-		!isdigit(postalCode[5]))
-	{
-		return false;  // Invalid postal code
-	}
-
-	return true;  // Valid postal code
-}
-
-
-
-
-/*
-* TOOL FUNCTIONS END
-*/
 
 
 /*
 * DATABASE FUNCTIONS START
 */
 
+// Login to a database using user input
 bool DatabaseLoginWithUserInput(MYSQL* databaseObject)
 {
 	char serverAddress[MAX_STRING_SIZE] = { "\0" };
@@ -409,6 +406,7 @@ bool DatabaseLoginWithUserInput(MYSQL* databaseObject)
 
 }
 
+// Login to the database using hard coded #define values
 bool DatabaseLoginWithProgramDefaults(MYSQL* databaseObject)
 {
 	if (!ConnectToDatabase(databaseObject, 
@@ -443,7 +441,6 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 }
 
 // Attempts to execute a query, and lets you know if it failed for some reason
-// returns true or false
 bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 {
 	if (mysql_query(databaseObject, queryString) != 0)
@@ -654,7 +651,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 		}
 
 		// If the NEW address could not be added successfully
-		if (!AddNewAddress(databaseObject, streetNumber, streetName, postalCode))
+		if (!CreateNewAddress(databaseObject, streetNumber, streetName, postalCode))
 		{
 			// AddNewAddress was unsuccessful
 			printf("Error adding new address from customer creation, please contact support!\n");
@@ -687,7 +684,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 }
 
 // Read function COMPLETED
-bool ReadCustomer(MYSQL* databaseObject)
+bool ReadCustomerTable(MYSQL* databaseObject)
 {
 	// This is the BASIS for reading the entire customer table
 	char readCustomerTableQuery[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -1576,7 +1573,7 @@ bool ReadOrderTable(MYSQL* databaseObject)
 *
 */
 
-bool AddNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, char* postalCode)
+bool CreateNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, char* postalCode)
 {
 	char query[MAX_STRING_SIZE] = { "\0" };
 	// Create the SQL query using sprintf
@@ -2703,7 +2700,7 @@ int main()
 	//}
 
 	// CUSTOMER table READ
-	if (!ReadCustomer(databaseObject))
+	if (!ReadCustomerTable(databaseObject))
 	{
 		printf("failed to read customer - MAIN!!\n");
 	}

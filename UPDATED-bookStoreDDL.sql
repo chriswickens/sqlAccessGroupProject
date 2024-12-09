@@ -1,12 +1,5 @@
 CREATE DATABASE IF NOT EXISTS BookStore;
 USE BookStore;
-SELECT * FROM customer;
-SELECT * FROM book;
-SELECT * FROM onlineorder;
-SELECT * FROM address;
-
-
-
 
 -- Address table
 CREATE TABLE IF NOT EXISTS Address(
