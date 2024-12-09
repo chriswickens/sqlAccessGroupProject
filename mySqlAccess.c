@@ -29,7 +29,7 @@
 // Connection details
 #define DEFAULT_DATABASE_SERVER_ADDRESS "localhost"
 #define DEFAULT_DATABASE_USERNAME "root"
-#define DEFAULT_DATABASE_PASSWORD "cwickens01"
+#define DEFAULT_DATABASE_PASSWORD "6741"
 #define DEFAULT_DATABASE_NAME "bookstore"
 
 
@@ -88,7 +88,8 @@ bool CreateCustomer(MYSQL* databaseObject);
 // Read
 bool ReadCustomer(MYSQL* databaseObject);
 
-
+// CUSTOMER table function prototypes
+// UPDATE
 bool UpdateCustomerInformation(MYSQL* databaseObject);
 bool UpdateCustomerFirstName(MYSQL* databaseObject, int customer_id, char* customer_name);
 bool UpdateCustomerLastName(MYSQL* databseObject, int customer_id, char* customer_lastName);
@@ -1053,29 +1054,38 @@ bool SearchCustomerTableForEmail(MYSQL* databaseObject, char* emailToCheck)
 
 bool UpdateCustomerInformation(MYSQL* databaseObject)
 {
+	// variables needed to make everything run smoothly
 	char userResponse[MAX_STRING_SIZE];
 	char newEntry[MAX_STRING_SIZE];
+	char streetName[MAX_STRING_SIZE];
+	char postalCode[MAX_STRING_SIZE];
+	char addressId[MAX_STRING_SIZE] = { '\0' };
 	bool didItWork = false;
 	bool validEmail = false;
 	bool noWhiteSpace = false;
-	int customerToUpdate = 10;
+	int customerToUpdate = 0;
+	int streetNumber = 0;
 	int menu = 0;
 
 	printf("Would you like to update? Y/N\n");
 	GetString(userResponse);
 
+	// first switch case that determines if user is updating info or not
 	switch (userResponse[0])
 	{
 	case 'y':
-	case 'Y':
+	case 'Y': // yes case
 		printf("Please enter a customer ID to update.\n");
 		customerToUpdate = GetIntegerFromUser();
+		
+		// does that customer exist
 		if (!SearchCustomerTableById(databaseObject, customerToUpdate))
 		{
-			didItWork = false;
+			didItWork = false;		// they do not exist! exit and go back to main menu
 			break;
 		}
 
+		// creates the menu with options for updating customer info
 		while (menu == 0)
 		{
 			printf("\nPlease choose what you would like to update:\n");
@@ -1086,66 +1096,122 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 			printf("5)\tReturn to main menu.\n\n");
 			menu = GetIntegerFromUser();
 
+			// menu control switch
 			switch (menu)
 			{
-			case 1:
+			case 1:			// first name update
 				printf("Please enter a new first name.\n");
 				GetString(newEntry);
 
+				// validate whether it worked or not and break out of switch
 				didItWork = UpdateCustomerFirstName(databaseObject, customerToUpdate, newEntry);
 				break;
 
-			case 2:
+			case 2:			// last name update
 				printf("Please enter a new last name.\n");
 				GetString(newEntry);
 
+				// validate whether it worked or not and break out of switch
 				didItWork = UpdateCustomerLastName(databaseObject, customerToUpdate, newEntry);
 				break;
 
-			case 3:
+			case 3:			// email update
 				printf("Please enter a new email address. Do not use any whitespace. It must include '@' and end in '.com'.\n");
 				GetString(newEntry);
 
+				// must have no whitespace and meet the email validation criteria
 				if ((validEmail = ValidateEmailAddress(newEntry)) == true && (noWhiteSpace = NoWhitespaceCheck(newEntry) == true))
 				{
+					// validate whether it worked or not
 					didItWork = UpdateCustomerEmail(databaseObject, customerToUpdate, newEntry);
 				}
 				else
 				{
+					// inform of invalid email
 					printf("Invalid email address.\n");
-					menu = 0;
 				}
 				break;
 
-			case 4:
-				printf("Please enter a new address ID for the customer.\n");
-				GetString(newEntry);
+			case 4:			// address update
+				printf("Please enter a new address for the customer.\n");
+
+				// get new street number
+				printf("Street Number:\n");
+				streetNumber = GetIntegerFromUser();
+
+				// get new street name
+				printf("Please enter a street name:\n");
+				GetString(streetName); 
+
+				// do the street name/number combo already exist?
+				if (SearchAddressTable(databaseObject, streetNumber, streetName, addressId))
+				{
+					// if it does already exist
+					printf("\nThe address you provided already exists in the database!\n");
+					printf("Would you like to use the existing address ID of %s? Y/N\n", addressId);
+					GetString(userResponse);
+					if (userResponse[0] == 'Y' || userResponse[0] == 'y')
+					{
+						int addrId = addressId[0] - '0';		// changes into an ASCII readable number
+						// updates customer address id to the one returned by the search
+						didItWork = UpdateCustomerAddressId(databaseObject, customerToUpdate, addrId); 
+					}
+					else
+					{
+						// inform them they are exiting the update and break out of switch
+						printf("Exiting address update.\n");
+						didItWork = false;
+					}
+				}
+				else
+				{
+					// if it does not exist get a postal code
+					printf("Please enter a postal code.\n");
+					GetString(postalCode);
+					
+					// loop to force valid postal code
+					while (!ValidatePostalCode(postalCode))
+					{
+						printf("ERROR: Please enter the customers POSTAL CODE (NO SPACES PLEASE EX: N6C3X7: ");
+						GetString(postalCode);
+					}
+					
+					// add the new address
+					didItWork = AddNewAddress(databaseObject, streetNumber, streetName, postalCode);
+					// get the id for the new address
+					didItWork = SearchAddressTable(databaseObject, streetNumber, streetName, addressId);
+					// make it ASCII from string
+					int addrId = addressId[0] - '0';
+					// update the customer's address ID to new address ID
+					didItWork = UpdateCustomerAddressId(databaseObject, customerToUpdate, addrId);
+				}
 
 				break;
 
-			case 5:
+			case 5:			// exit the update menu
 				printf("Returning to main menu...\n");
 				didItWork = false;
 
 				break;
 
-			default:
+			default:		// refuse any invalid menu numbers
 				printf("Please select one of the listed options.\n");
-				menu = 0;
+				menu = 0;		// loop back to menu for another prompt
 			}
 		}
 		break;
 
 	case 'n':
-	case 'N':
+	case 'N':		// the no case
 		printf("Returning to main menu...\n");
-		didItWork = false;
+		didItWork = false;		// give a return value to calling function
 		break;
 
-	default:
+	default:		// refuse anything other than y,Y,n,N
 		printf("Invalid input.\n");
 	}
 
+	// return a value to calling function
 	return didItWork;
 }
 
@@ -2841,14 +2907,14 @@ int main()
 	//}
 
 	// CUSTOMER table READ
-	if (!ReadCustomer(databaseObject))
-	{
-		printf("failed to read customer - MAIN!!\n");
-	}
-	else
-	{
-		printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
-	}
+	//if (!ReadCustomer(databaseObject))
+	//{
+	//	printf("failed to read customer - MAIN!!\n");
+	//}
+	//else
+	//{
+	//	printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
+	//}
 
 
 
@@ -2883,17 +2949,14 @@ int main()
 	//}
 
 	// UPDATE CUSTOMER
-	//if (!UpdateCustomerInformation(databaseObject))
-	//{
-	//	printf("Failed to update customer information.\n");
-	//}
-	//else
-	//{
-	//	printf("Customer information updated.\n");
-	//}
-
-	//UpdateCustomerFirstName(databaseObject, 10, "Joe");
-
+	if (!UpdateCustomerInformation(databaseObject))
+	{
+		printf("Failed to update customer information.\n");
+	}
+	else
+	{
+		printf("Customer information updated.\n");
+	}
 
 	// CREATE ORDER
 	//if (!CreateOrder(databaseObject))
