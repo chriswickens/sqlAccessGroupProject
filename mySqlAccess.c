@@ -2802,35 +2802,44 @@ int main(void)
 		mysql_close(databaseObject);
 	}
 
-	// Used for logging in with program defaults
+	// Prompt user to confirm if they want to login with defaults or with inputs.
+	printf("Do you want to login with user inputs or defaults?\n");
+	printf("Enter 'y' to do so. Any other input will login with defaults.\n");
 
-	if (DatabaseLoginWithProgramDefaults(databaseObject))
+	char yesOrNo[MAX_STRING_SIZE] = { "" };
+	fgets(yesOrNo, sizeof(yesOrNo), stdin);
+
+	// If user enters 'y', then allow them to enter with
+	if (strcmp(yesOrNo, "Y\n") == 0)
 	{
-		printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+		 //Used for logging in with user input
+
+		if (DatabaseLoginWithUserInput(databaseObject))
+		{
+			printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+		}
+		else
+		{
+			printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+			return EXIT_FAILURE;
+			// This is where the program goes to die, instead of the switch.
+		}
 	}
 	else
 	{
-		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-		return EXIT_FAILURE;
-		// This is where the program goes to die, instead of the switch.
+		// Used for logging in with program defaults
+
+		if (DatabaseLoginWithProgramDefaults(databaseObject))
+		{
+			printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+		}
+		else
+		{
+			printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+			return EXIT_FAILURE;
+			// This is where the program goes to die, instead of the switch.
+		}
 	}
-
-//------------------- CHECK WITH CHRIS ---------------------------------------------------------
-	// Used for logging in with user input
-
-	//if (DatabaseLoginWithUserInput(databaseObject))
-	//{
-	//	printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-	//}
-	//else
-	//{
-	//	printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-	//	return EXIT_FAILURE;
-	//	// This is where the program goes to die, instead of the switch.
-	//}
-//------------------- CHECK WITH CHRIS ---------------------------------------------------------
-
-
 	// Start of main menu
 	int exitProgram = 0;
 
