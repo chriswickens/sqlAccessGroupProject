@@ -15,12 +15,6 @@
 #define DEFAULT_DATABASE_PASSWORD "Sah@-123"
 #define DEFAULT_DATABASE_NAME "bookstore"
 
-// Date ranges
-#define MONTHMIN 1
-#define MONTHMAX 12
-#define DAYMIN 1
-#define DAYMAX 31
-
 // Do not remove these, used for final project
 #define YEARMIN 1900
 // YEARMAX can be changed to allow books to be added before their release date
