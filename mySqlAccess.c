@@ -131,6 +131,8 @@ bool ReadAndGetBookTable(MYSQL* databaseObject, int* bookIds, int* size);
 bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size);
 
 // UPDATE
+bool UpdateOrderInformation(MYSQL* databaseObject);
+bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity);
 
 // DELETE
 bool DeleteOrderRecord(MYSQL* databaseObject);
@@ -2947,14 +2949,14 @@ bool UpdateBookInformation(MYSQL* databaseObject)
 		case 5:
 			isbnNumber = GetIsbnFromUser();
 
-			didItWork = UpdateISBN(databaseObject, isbnNumber);
+			didItWork = UpdateISBN(databaseObject, bookID, isbnNumber);
 			break;
 
 		case 6:
 			printf("Please enter a new publisher ID:\n");
 			publisherID = GetIntegerFromUser();
 
-			didItWork = UpdatePublisherId(databaseObject, publisherID);
+			didItWork = UpdatePublisherId(databaseObject, publisherID, bookID);
 			break;
 
 		case 7:
@@ -3098,7 +3100,6 @@ bool UpdatePublisherId(MYSQL* databaseObject, int publisherID, int bookId)
 	}
 
 	return true;
-	return true;
 }
 
 bool SearchBookTableWithId(MYSQL* databaseObject, int bookId)
@@ -3147,4 +3148,105 @@ bool SearchBookTableWithId(MYSQL* databaseObject, int bookId)
 
 	// Found the book
 	return false;
+}
+
+bool UpdateOrderInformation(MYSQL* databaseObject)
+{
+	bool didItWork = false;
+	printf("Please enter the order ID of the order you'd like to modify.\n");
+
+	int orderId = GetIntegerFromUser();
+
+	printf("Would you like to:\n");
+	printf("1) Add more copies of a book to your order\n");
+	printf("2) Add another book to your order\n");
+
+	int menu = GetIntegerFromUser();
+	while (menu == 0) 
+	{
+		switch (menu)
+		{
+		case 1:
+			printf("Enter the book ID you'd like to change and the order ID associated with it.\n");
+			printf("Book ID: \n");
+			int bookId = GetIntegerFromUser();
+			if (!SearchBookTableWithId(databaseObject, bookId))
+			{
+				printf("Book does not exist.\n");
+				didItWork = false;
+			}
+			else
+			{
+				printf("Quantity: \n");
+				int quantity = GetIntegerFromUser();
+				didItWork = UpdateQuantity(databaseObject, orderId, quantity, bookId);
+			}
+
+			break;
+
+		case 2:
+			printf("Enter the book ID you would like to add to your order:\n");
+			int bookId = GetIntegerFromUser();
+			if (!SearchBookTableWithId(databaseObject, bookId))
+			{
+				printf("Book does not exist.\n");
+				didItWork = false;
+			}
+			else
+			{
+				printf("Enter the number of copies you'd like to add to the order:\n");
+				int quantity = GetIntegerFromUser();
+				didItWork = UpdateOrderBooks(databaseObject, orderId, bookId, quantity);
+			}
+
+			break;
+
+		case 3:
+			printf("Returning to main menu...\n");
+			break;
+
+		default:
+			printf("Please choose one of the listed options.\n");
+			menu = 0;
+			break;
+		}
+	}
+
+	return didItWork; 
+}
+
+bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity, int bookId)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE OnlineOrder\n"
+		"SET Quantity = '%d'\n"
+		"WHERE OnlineOrderId = %d AND BookId = %d;", quantity, orderId, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+bool UpdateOrderBooks(MYSQL* databaseObject, int orderId, int bookId, int quantity)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE OnlineOrder\n"
+		"SET Quantity = '%d'\n"
+		"WHERE OnlineOrderId = %d AND BookId = %d;", quantity, orderId, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
 }
