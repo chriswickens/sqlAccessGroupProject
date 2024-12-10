@@ -127,13 +127,13 @@ bool ReadOrderTable(MYSQL* databaseObject);
 bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName);
 bool CheckBookIsbnExistsQuery(MYSQL* databaseObject, long long isbnNumber);
 bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetName, char* addressId);
-bool ReadAndGetPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size);
-bool ReadAndGetBookTable(MYSQL* databaseObject, int* bookIds, int* size);
-bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size);
+bool GetAndDisplayPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size);
+bool GetAndDisplayBookTable(MYSQL* databaseObject, int* bookIds, int* size);
+bool GetAndDisplayCustomerTable(MYSQL* databaseObject, int* customerIds, int* size);
 
 // UPDATE
 bool UpdateOrderInformation(MYSQL* databaseObject);
-bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity);
+bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity, int bookId);
 
 // DELETE
 void deleteOrderImplication(void);
@@ -486,6 +486,7 @@ bool CheckRowResult(MYSQL_RES* resultToCheck)
 * CUSTOMER TABLE CRUD FUNCTIONS START HERE
 */
 
+// Create functions
 bool CreateCustomer(MYSQL* databaseObject)
 {
 	char email[MAX_STRING_SIZE] = { "\0" }; // Storage for email
@@ -595,7 +596,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 	return true;
 }
 
-// Read function COMPLETED
+// Read functions
 bool ReadCustomerTable(MYSQL* databaseObject)
 {
 	// This is the BASIS for reading the entire customer table
@@ -645,124 +646,7 @@ bool ReadCustomerTable(MYSQL* databaseObject)
 
 }
 
-// Delete a customer entry, requires checks in onlineOrder table for customerid
-bool DeleteCustomer(MYSQL* databaseObject)
-{
-	// Use the CustomerExistQuery to see if they exist
-
-	// Cannot delete customer if onlineOrder has that customerId in one of its entries
-	// Need to create a function to check the onlineOrder for the specific customerid
-}
-
-/*
-*
-* MISC CUSTOMER table functions
-*
-*/
-
-bool SearchCustomerTableForId(MYSQL* databaseObject)
-{
-	printf("Please enter a customer ID to check: ");
-	int customerIdToCheck = GetIntegerFromUser();
-	// CHECK IF THE CUSTOMER EXISTS FIRST
-	if (!CheckCustomerIdExistsQuery(databaseObject, customerIdToCheck))
-	{
-		// The query was NOT valid!
-		printf("Failed to find customer in the database!\n");
-		return false;
-	}
-	// The query was valid
-	else
-	{
-		// Store the result from the query
-		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
-
-		// If the result is null, there was no result
-		if (customerResult == NULL)
-		{
-			// Print the SQL error
-			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
-			return false;
-		}
-
-		// If the result was NO rows, the customer didnt exist
-		if (!CheckRowResult(customerResult))
-		{
-			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
-			return false;
-		}
-		// The result has at LEAST ONE row, the customer DOES exist!
-		else
-		{
-			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
-			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
-			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
-			{
-				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
-			}
-		}
-
-		// Free the result for the customer so memory isnt still consumed by it
-		mysql_free_result(customerResult);
-
-		// The customer read was successful, put a message saying something like 
-		// "Customer read successful, all results have been displayed!" where this was called
-		return true;
-
-	}
-}
-
-bool SearchCustomerTableForEmail(MYSQL* databaseObject, char* emailToCheck)
-{
-	// CHECK IF THE CUSTOMER EXISTS FIRST
-	if (!CheckCustomerEmailExistsQuery(databaseObject, emailToCheck))
-	{
-		// The query was NOT valid!
-		printf("Failed to find customer email in the database!\n");
-		return false;
-	}
-	// The query was valid
-	else
-	{
-		// Store the result from the query
-		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
-
-		// If the result is null, there was no result
-		if (customerResult == NULL)
-		{
-			// Print the SQL error
-			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
-			return false;
-		}
-
-		// If the result was NO rows, the customer didnt exist
-		if (!CheckRowResult(customerResult))
-		{
-			printf("Customer with email %s does not exist.\n", emailToCheck);
-			return false;
-		}
-
-		// The result has at LEAST ONE row, the customer DOES exist!
-		else
-		{
-			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
-			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
-			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
-			{
-				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
-			}
-		}
-
-		// Free the result for the customer so memory isnt still consumed by it
-		mysql_free_result(customerResult);
-
-		// The customer read was successful, put a message saying something like 
-		// "Customer read successful, all results have been displayed!" where this was called
-		return true;
-
-	}
-}
-
+// Update functions
 bool UpdateCustomerInformation(MYSQL* databaseObject)
 {
 	// variables needed to make everything run smoothly
@@ -925,7 +809,190 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	// return a value to calling function
 	return didItWork;
 }
+bool UpdateCustomerLastName(MYSQL* databaseObject, int customerId, char* lastName)
+{
+	char query[MAX_STRING_SIZE];
 
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET lastname = TRIM(' ' FROM '%s')\n"
+		"WHERE customerid = %d;", lastName, customerId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+bool UpdateCustomerEmail(MYSQL* databaseObject, int customerId, char* customerEmail)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET email = '%s'\n"
+		"WHERE customerid = %d", customerEmail, customerId);
+
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+bool UpdateCustomerAddressId(MYSQL* databaseObject, int customerId, int addressId)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\n"
+		"SET addressid = %d\n"
+		"WHERE customerid = %d", addressId, customerId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+bool UpdateCustomerFirstName(MYSQL* databaseObject, int customerId, char* firstName)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE customer\nSET FirstName = '%s'\nWHERE CustomerId = '%d'", firstName, customerId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+// Delete functions
+bool DeleteCustomer(MYSQL* databaseObject)
+{
+	// Use the CustomerExistQuery to see if they exist
+
+	// Cannot delete customer if onlineOrder has that customerId in one of its entries
+	// Need to create a function to check the onlineOrder for the specific customerid
+}
+
+/*
+*
+* MISC CUSTOMER table functions
+*
+*/
+
+bool SearchCustomerTableForId(MYSQL* databaseObject)
+{
+	printf("Please enter a customer ID to check: ");
+	int customerIdToCheck = GetIntegerFromUser();
+	// CHECK IF THE CUSTOMER EXISTS FIRST
+	if (!CheckCustomerIdExistsQuery(databaseObject, customerIdToCheck))
+	{
+		// The query was NOT valid!
+		printf("Failed to find customer in the database!\n");
+		return false;
+	}
+	// The query was valid
+	else
+	{
+		// Store the result from the query
+		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
+
+		// If the result is null, there was no result
+		if (customerResult == NULL)
+		{
+			// Print the SQL error
+			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+			return false;
+		}
+
+		// If the result was NO rows, the customer didnt exist
+		if (!CheckRowResult(customerResult))
+		{
+			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
+			return false;
+		}
+		// The result has at LEAST ONE row, the customer DOES exist!
+		else
+		{
+			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
+			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
+			{
+				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
+			}
+		}
+
+		// Free the result for the customer so memory isnt still consumed by it
+		mysql_free_result(customerResult);
+
+		// The customer read was successful, put a message saying something like 
+		// "Customer read successful, all results have been displayed!" where this was called
+		return true;
+
+	}
+}
+bool SearchCustomerTableForEmail(MYSQL* databaseObject, char* emailToCheck)
+{
+	// CHECK IF THE CUSTOMER EXISTS FIRST
+	if (!CheckCustomerEmailExistsQuery(databaseObject, emailToCheck))
+	{
+		// The query was NOT valid!
+		printf("Failed to find customer email in the database!\n");
+		return false;
+	}
+	// The query was valid
+	else
+	{
+		// Store the result from the query
+		MYSQL_RES* customerResult = mysql_store_result(databaseObject);
+
+		// If the result is null, there was no result
+		if (customerResult == NULL)
+		{
+			// Print the SQL error
+			printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+			return false;
+		}
+
+		// If the result was NO rows, the customer didnt exist
+		if (!CheckRowResult(customerResult))
+		{
+			printf("Customer with email %s does not exist.\n", emailToCheck);
+			return false;
+		}
+
+		// The result has at LEAST ONE row, the customer DOES exist!
+		else
+		{
+			MYSQL_ROW customerRow; // Get the rows using MYSQL_ROW for printing
+			// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+			while ((customerRow = mysql_fetch_row(customerResult)) != NULL)
+			{
+				printf("CUSTOMER ID: Records found: Customer ID: %s, Customer Name: %s %s\n", customerRow[0], customerRow[2], customerRow[3]);
+			}
+		}
+
+		// Free the result for the customer so memory isnt still consumed by it
+		mysql_free_result(customerResult);
+
+		// The customer read was successful, put a message saying something like 
+		// "Customer read successful, all results have been displayed!" where this was called
+		return true;
+
+	}
+}
 bool SearchCustomerTableById(MYSQL* databaseObject, int customerIdToCheck)
 {
 	if (!CheckCustomerIdExistsQuery(databaseObject, customerIdToCheck))
@@ -965,78 +1032,6 @@ bool SearchCustomerTableById(MYSQL* databaseObject, int customerIdToCheck)
 
 	}
 }
-
-bool UpdateCustomerFirstName(MYSQL* databaseObject, int customerId, char* firstName)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE customer\nSET FirstName = '%s'\nWHERE CustomerId = '%d'", firstName, customerId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool UpdateCustomerLastName(MYSQL* databaseObject, int customerId, char* lastName)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE customer\n"
-		"SET lastname = TRIM(' ' FROM '%s')\n"
-		"WHERE customerid = %d;", lastName, customerId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool UpdateCustomerEmail(MYSQL* databaseObject, int customerId, char* customerEmail)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE customer\n"
-		"SET email = '%s'\n"
-		"WHERE customerid = %d", customerEmail, customerId);
-
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool UpdateCustomerAddressId(MYSQL* databaseObject, int customerId, int addressId)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE customer\n"
-		"SET addressid = %d\n"
-		"WHERE customerid = %d", addressId, customerId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
 bool CheckCustomerIdExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -1056,7 +1051,6 @@ bool CheckCustomerIdExistsQuery(MYSQL* databaseObject, int customerIdNumber)
 
 	return true;
 }
-
 bool CheckCustomerEmailExistsQuery(MYSQL* databaseObject, char* customerEmail)
 {
 	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -1088,7 +1082,7 @@ bool CheckCustomerEmailExistsQuery(MYSQL* databaseObject, char* customerEmail)
 * BOOK TABLE CRUD FUNCTIONS START HERE
 */
 
-// Create function
+// Create functions
 bool CreateBookEntry(MYSQL* databaseObject)
 {
 	int publisherIds[MAX_DATABASE_TABLE_ROWS];
@@ -1138,7 +1132,7 @@ bool CreateBookEntry(MYSQL* databaseObject)
 	printf("Year: %.2lf\n", bookPrice);
 
 	// Show list of possible publisher IDs
-	if (!ReadAndGetPublisherTable(databaseObject, publisherIds, &size))
+	if (!GetAndDisplayPublisherTable(databaseObject, publisherIds, &size))
 	{
 		printf("ERROR reading PUBLISHER table! Please contact support...\n");
 		return false;
@@ -1190,7 +1184,7 @@ bool CreateBookEntry(MYSQL* databaseObject)
 	return true;
 }
 
-// Read function
+// Read functions
 bool ReadBookTable(MYSQL* databaseObject)
 {
 	// This is the BASIS for reading the entire customer table
@@ -1242,9 +1236,189 @@ bool ReadBookTable(MYSQL* databaseObject)
 
 }
 
-// Update function
+// Update functions
+bool UpdateBookInformation(MYSQL* databaseObject)
+{
+	bool didItWork = false;
+	int menu = 0;
+	int bookID = 0;
+	int pageCount = 0;
+	int publicationYear = 0;
+	int publisherID = 0;
+	float price = 0.00;
+	long long isbnNumber = 0;
+	char bookTitle[MAX_STRING_SIZE];
 
-// Delete function
+	printf("Please enter the ID of the book you'd like to update:\n");
+	bookID = GetIntegerFromUser();
+
+	if (!SearchBookTableWithId(databaseObject, bookID))
+	{
+		printf("Book does not exist.\n");
+	}
+
+	while (menu == 0)
+	{
+		printf("\nPlease choose what you would like to update:\n");
+		printf("1)\tPage Count\n");
+		printf("2)\tTitle\n");
+		printf("3)\tYear\n");
+		printf("4)\tPrice\n");
+		printf("5)\tISBN\n");
+		printf("6)\tPublisher ID\n");
+		printf("7)\tReturn to main menu\n");
+		menu = GetIntegerFromUser();
+
+		switch (menu)
+		{
+		case 1:
+			printf("Enter the new page count:\n");
+			pageCount = GetIntegerFromUser();
+
+			didItWork = UpdatePageCount(databaseObject, pageCount, bookID);
+			break;
+
+		case 2:
+			printf("Please enter a new book title:\n");
+			GetString(bookTitle);
+
+			didItWork = UpdateBookTitle(databaseObject, bookID, bookTitle);
+			break;
+
+		case 3:
+			printf("Please enter a new publication year:\n");
+			publicationYear = GetIntegerFromUser();
+			if ((publicationYear < YEARMIN) || (publicationYear > YEARMAX))
+			{
+				printf("Invalid year of publication.\n");
+
+				didItWork = false;
+				break;
+			}
+
+			didItWork = UpdatePublicationYear(databaseObject, bookID, publicationYear);
+			break;
+
+		case 4:
+			price = GetFloatFromUser();
+
+			didItWork = UpdateBookPrice(databaseObject, bookID, price);
+			break;
+
+		case 5:
+			isbnNumber = GetIsbnFromUser();
+
+			didItWork = UpdateISBN(databaseObject, bookID, isbnNumber);
+			break;
+
+		case 6:
+			printf("Please enter a new publisher ID:\n");
+			publisherID = GetIntegerFromUser();
+
+			didItWork = UpdatePublisherId(databaseObject, publisherID, bookID);
+			break;
+
+		case 7:
+			printf("Returning to main menu.\n");
+			break;
+
+		default:
+			printf("Please select one of the listed options.\n");
+			menu = 0;		// loop back to menu for another prompt
+			break;
+		}
+	}
+
+	return didItWork;
+}
+bool UpdatePageCount(MYSQL* databaseObject, int pages, int bookId)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE Book\n"
+		"SET PageCount = %d\n"
+		"WHERE BookId = %d;", pages, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+bool UpdateBookTitle(MYSQL* databaseObject, int bookId, char* title)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE Book\n"
+		"SET Title = '%s'\n"
+		"WHERE BookId = %d;", title, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+bool UpdatePublicationYear(MYSQL* databaseObject, int bookId, int year)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE Book\n"
+		"SET Year = %d\n"
+		"WHERE BookId = %d", year, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+bool UpdateBookPrice(MYSQL* databaseObject, int bookId, float price)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE Book\n"
+		"SET Price = %2lf\n"
+		"WHERE BookId = %d;", price, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+
+}
+bool UpdateISBN(MYSQL* databaseObject, int bookId, long long isbnNumber)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE Book\n"
+		"SET Isbn = '%lld'\n"
+		"WHERE BookId = %d;", isbnNumber, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+// Delete functions
 
 /*
 * MISC BOOK table functions
@@ -1283,6 +1457,25 @@ bool CheckBookTableIsbnExists(MYSQL* databaseObject, long long isbnToCheck)
 	// Return TRUE if the ISBN does exist, handle in the function calling this
 	return true;
 }
+bool CheckPublisherIdExists(MYSQL* databaseObject, int publisherIdNumber)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery,
+		"SELECT * FROM book\n"
+		"WHERE PublisherId = %d;"
+		, publisherIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
 
 /*
 * END OF
@@ -1315,7 +1508,7 @@ bool CreateOrder(MYSQL* databaseObject)
 	int bookQuantity = 0;
 
 	// Show customer Ids
-	if (!ReadAndGetCustomerTable(databaseObject, customerIds, &customerArraySize))
+	if (!GetAndDisplayCustomerTable(databaseObject, customerIds, &customerArraySize))
 	{
 		printf("ERROR reading CUSTOMER table! Please contact support...\n");
 		return false;
@@ -1351,7 +1544,7 @@ bool CreateOrder(MYSQL* databaseObject)
 	}
 
 	// Show the bookids
-	if (!ReadAndGetBookTable(databaseObject, bookIds, &bookArraySize))
+	if (!GetAndDisplayBookTable(databaseObject, bookIds, &bookArraySize))
 	{
 		printf("ERROR reading BOOK table! Please contact support...\n");
 		return false;
@@ -1469,6 +1662,104 @@ bool ReadOrderTable(MYSQL* databaseObject)
 }
 
 // Update function
+bool UpdateOrderInformation(MYSQL* databaseObject)
+{
+	bool didItWork = false;
+	printf("Please enter the order ID of the order you'd like to modify.\n");
+
+	int orderId = GetIntegerFromUser();
+
+	printf("Would you like to:\n");
+	printf("1) Add more copies of a book to your order\n");
+	printf("2) Add another book to your order\n");
+
+	int menu = GetIntegerFromUser();
+	while (menu == 0)
+	{
+		switch (menu)
+		{
+		case 1:
+			printf("Enter the book ID you'd like to change and the order ID associated with it.\n");
+			printf("Book ID: \n");
+			int bookId = GetIntegerFromUser();
+			if (!SearchBookTableWithId(databaseObject, bookId))
+			{
+				printf("Book does not exist.\n");
+				didItWork = false;
+			}
+			else
+			{
+				printf("Quantity: \n");
+				int quantity = GetIntegerFromUser();
+				didItWork = UpdateQuantity(databaseObject, orderId, quantity, bookId);
+			}
+
+			break;
+
+		case 2:
+			printf("Enter the book ID you would like to add to your order:\n");
+			int bookId = GetIntegerFromUser();
+			if (!SearchBookTableWithId(databaseObject, bookId))
+			{
+				printf("Book does not exist.\n");
+				didItWork = false;
+			}
+			else
+			{
+				printf("Enter the number of copies you'd like to add to the order:\n");
+				int quantity = GetIntegerFromUser();
+				didItWork = UpdateOrderBooks(databaseObject, orderId, bookId, quantity);
+			}
+
+			break;
+
+		case 3:
+			printf("Returning to main menu...\n");
+			break;
+
+		default:
+			printf("Please choose one of the listed options.\n");
+			menu = 0;
+			break;
+		}
+	}
+
+	return didItWork;
+}
+bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity, int bookId)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE OnlineOrder\n"
+		"SET Quantity = '%d'\n"
+		"WHERE OnlineOrderId = %d AND BookId = %d;", quantity, orderId, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+bool UpdateOrderBooks(MYSQL* databaseObject, int orderId, int bookId, int quantity)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE OnlineOrder\n"
+		"SET Quantity = '%d'\n"
+		"WHERE OnlineOrderId = %d AND BookId = %d;", quantity, orderId, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
 
 // Delete function
 
@@ -1488,7 +1779,6 @@ bool ReadOrderTable(MYSQL* databaseObject)
 * MISC Table Functions
 *
 */
-
 bool CreateNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName, char* postalCode)
 {
 	char query[MAX_STRING_SIZE] = { "\0" };
@@ -1505,7 +1795,6 @@ bool CreateNewAddress(MYSQL* databaseObject, int streetNumber, char* streetName,
 
 	return true;
 }
-
 bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* streetName)
 {
 	char query[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -1521,7 +1810,6 @@ bool CheckAddressExistsQuery(MYSQL* databaseObject, int streetNumber, char* stre
 
 	return true;
 }
-
 bool CheckBookIsbnExistsQuery(MYSQL* databaseObject, long long isbnNumber)
 {
 	char query[MAX_STRING_SIZE]; // Where the query will be stored.
@@ -1536,7 +1824,6 @@ bool CheckBookIsbnExistsQuery(MYSQL* databaseObject, long long isbnNumber)
 
 	return true;
 }
-
 bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetName, char* addressId)
 {
 	// CHECK IF THE CUSTOMER EXISTS FIRST
@@ -1590,8 +1877,7 @@ bool SearchAddressTable(MYSQL* databaseObject, int streetNumber, char* streetNam
 
 
 }
-
-bool ReadAndGetPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size)
+bool GetAndDisplayPublisherTable(MYSQL* databaseObject, int* publisherIds, int* size)
 {
 	char readPublisherTableQuery[MAX_STRING_SIZE];
 
@@ -1649,8 +1935,7 @@ bool ReadAndGetPublisherTable(MYSQL* databaseObject, int* publisherIds, int* siz
 	mysql_free_result(publisherTableResult);
 	return true;
 }
-
-bool ReadAndGetBookTable(MYSQL* databaseObject, int* bookIds, int* size)
+bool GetAndDisplayBookTable(MYSQL* databaseObject, int* bookIds, int* size)
 {
 	char readBookTableQuery[MAX_STRING_SIZE];
 
@@ -1708,8 +1993,7 @@ bool ReadAndGetBookTable(MYSQL* databaseObject, int* bookIds, int* size)
 	mysql_free_result(bookTableResult);
 	return true;
 }
-
-bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size)
+bool GetAndDisplayCustomerTable(MYSQL* databaseObject, int* customerIds, int* size)
 {
 	char readCustomerTableQuery[MAX_STRING_SIZE];
 
@@ -1767,6 +2051,71 @@ bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size)
 	mysql_free_result(customerTableResult);
 	return true;
 }
+bool UpdatePublisherId(MYSQL* databaseObject, int publisherID, int bookId)
+{
+	char query[MAX_STRING_SIZE];
+
+	sprintf(query,
+		"UPDATE Book\n"
+		"SET publisherId = '%d'\n"
+		"WHERE BookId = %d;", publisherID, bookId);
+
+	if (!SendQueryToDatabase(databaseObject, query))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+bool SearchBookTableWithId(MYSQL* databaseObject, int bookId)
+{
+	// CHECK IF THE CUSTOMER EXISTS FIRST
+	if (!CheckBookIdExistsQuery(databaseObject, bookId))
+	{
+		// The query was NOT valid!
+		printf("Invalid query\n");
+		return false;
+	}
+
+	// The query was valid
+	// Store the result from the query
+	MYSQL_RES* bookIdResult = mysql_store_result(databaseObject);
+
+	// If the result is null, there was no result
+	if (bookIdResult == NULL)
+	{
+		// Print the SQL error
+		printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+		return false;
+	}
+
+	// If the result was NO rows, the address does not exist
+	if (!CheckRowResult(bookIdResult))
+	{
+		printf("Book with ID: %d does not exist.\n", bookId);
+		return false;
+	}
+
+	// The result has at LEAST ONE row, the address DOES exist!
+	else
+	{
+		MYSQL_ROW bookIdRow; // Get the rows using MYSQL_ROW for printing
+		// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+		if ((bookIdRow = mysql_fetch_row(bookIdResult)) != NULL)
+		{
+			mysql_free_result(bookIdResult);
+			return true;
+		}
+	}
+
+	// Free the result for the book so memory isnt still consumed by it
+	mysql_free_result(bookIdResult);
+
+	// Found the book
+	return false;
+}
+
 
 
 /* --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2991,379 +3340,4 @@ int main()
 
 	return EXIT_SUCCESS;
 
-}
-
-
-
-bool UpdateBookInformation(MYSQL* databaseObject)
-{
-	bool didItWork = false;
-	int menu = 0;
-	int bookID = 0;
-	int pageCount = 0;
-	int publicationYear = 0;
-	int publisherID = 0;
-	float price = 0.00;
-	long long isbnNumber = 0;
-	char bookTitle[MAX_STRING_SIZE];
-
-	printf("Please enter the ID of the book you'd like to update:\n");
-	bookID = GetIntegerFromUser();
-
-	if (!SearchBookTableWithId(databaseObject, bookID))
-	{
-		printf("Book does not exist.\n");
-	}
-
-	while (menu == 0)
-	{
-		printf("\nPlease choose what you would like to update:\n");
-		printf("1)\tPage Count\n");
-		printf("2)\tTitle\n");
-		printf("3)\tYear\n");
-		printf("4)\tPrice\n");
-		printf("5)\tISBN\n");
-		printf("6)\tPublisher ID\n");
-		printf("7)\tReturn to main menu\n");
-		menu = GetIntegerFromUser();
-
-		switch (menu)
-		{
-		case 1:
-			printf("Enter the new page count:\n");
-			pageCount = GetIntegerFromUser();
-
-			didItWork = UpdatePageCount(databaseObject, pageCount, bookID);
-			break;
-
-		case 2:
-			printf("Please enter a new book title:\n");
-			GetString(bookTitle);
-
-			didItWork = UpdateBookTitle(databaseObject, bookID, bookTitle);
-			break;
-
-		case 3:
-			printf("Please enter a new publication year:\n");
-			publicationYear = GetIntegerFromUser();
-			if ((publicationYear < YEARMIN) || (publicationYear > YEARMAX))
-			{
-				printf("Invalid year of publication.\n");
-
-				didItWork = false;
-				break;
-			}
-
-			didItWork = UpdatePublicationYear(databaseObject, bookID, publicationYear);
-			break;
-
-		case 4:
-			price = GetFloatFromUser();
-
-			didItWork = UpdateBookPrice(databaseObject, bookID, price);
-			break;
-
-		case 5:
-			isbnNumber = GetIsbnFromUser();
-
-			didItWork = UpdateISBN(databaseObject, bookID, isbnNumber);
-			break;
-
-		case 6:
-			printf("Please enter a new publisher ID:\n");
-			publisherID = GetIntegerFromUser();
-
-			didItWork = UpdatePublisherId(databaseObject, publisherID, bookID);
-			break;
-
-		case 7:
-			printf("Returning to main menu.\n");
-			break;
-
-		default:
-			printf("Please select one of the listed options.\n");
-			menu = 0;		// loop back to menu for another prompt
-			break;
-		}
-	}
-
-	return didItWork;
-}
-
-
-bool UpdatePageCount(MYSQL* databaseObject, int pages, int bookId)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE Book\n"
-		"SET PageCount = %d\n"
-		"WHERE BookId = %d;", pages, bookId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool UpdateBookTitle(MYSQL* databaseObject, int bookId, char* title)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE Book\n"
-		"SET Title = '%s'\n"
-		"WHERE BookId = %d;", title, bookId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool UpdatePublicationYear(MYSQL* databaseObject, int bookId, int year)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE Book\n"
-		"SET Year = %d\n"
-		"WHERE BookId = %d", year, bookId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool UpdateBookPrice(MYSQL* databaseObject, int bookId, float price)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE Book\n"
-		"SET Price = %2lf\n"
-		"WHERE BookId = %d;", price, bookId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-
-}
-
-bool UpdateISBN(MYSQL* databaseObject, int bookId, long long isbnNumber)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE Book\n"
-		"SET Isbn = '%lld'\n"
-		"WHERE BookId = %d;", isbnNumber, bookId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool CheckPublisherIdExists(MYSQL* databaseObject, int publisherIdNumber)
-{
-	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
-
-	// Create the SQL query string and store it in the 'query' char array
-	sprintf(newQuery,
-		"SELECT * FROM book\n"
-		"WHERE PublisherId = %d;"
-		, publisherIdNumber);
-
-	if (!SendQueryToDatabase(databaseObject, newQuery))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool UpdatePublisherId(MYSQL* databaseObject, int publisherID, int bookId)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE Book\n"
-		"SET Isbn = '%d'\n"
-		"WHERE BookId = %d;", publisherID, bookId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool SearchBookTableWithId(MYSQL* databaseObject, int bookId)
-{
-	// CHECK IF THE CUSTOMER EXISTS FIRST
-	if (!CheckBookIdExistsQuery(databaseObject, bookId))
-	{
-		// The query was NOT valid!
-		printf("Invalid query\n");
-		return false;
-	}
-
-	// The query was valid
-	// Store the result from the query
-	MYSQL_RES* bookIdResult = mysql_store_result(databaseObject);
-
-	// If the result is null, there was no result
-	if (bookIdResult == NULL)
-	{
-		// Print the SQL error
-		printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
-		return false;
-	}
-
-	// If the result was NO rows, the address does not exist
-	if (!CheckRowResult(bookIdResult))
-	{
-		printf("Book with ID: %d does not exist.\n", bookId);
-		return false;
-	}
-
-	// The result has at LEAST ONE row, the address DOES exist!
-	else
-	{
-		MYSQL_ROW bookIdRow; // Get the rows using MYSQL_ROW for printing
-		// Iterate over the row data until it is reading null, and print each entry (probably only 1)
-		if ((bookIdRow = mysql_fetch_row(bookIdResult)) != NULL)
-		{
-			mysql_free_result(bookIdResult);
-			return true;
-		}
-	}
-
-	// Free the result for the book so memory isnt still consumed by it
-	mysql_free_result(bookIdResult);
-
-	// Found the book
-	return false;
-}
-
-bool UpdateOrderInformation(MYSQL* databaseObject)
-{
-	bool didItWork = false;
-	printf("Please enter the order ID of the order you'd like to modify.\n");
-
-	int orderId = GetIntegerFromUser();
-
-	printf("Would you like to:\n");
-	printf("1) Add more copies of a book to your order\n");
-	printf("2) Add another book to your order\n");
-
-	int menu = GetIntegerFromUser();
-	while (menu == 0)
-	{
-		switch (menu)
-		{
-		case 1:
-			printf("Enter the book ID you'd like to change and the order ID associated with it.\n");
-			printf("Book ID: \n");
-			int bookId = GetIntegerFromUser();
-			if (!SearchBookTableWithId(databaseObject, bookId))
-			{
-				printf("Book does not exist.\n");
-				didItWork = false;
-			}
-			else
-			{
-				printf("Quantity: \n");
-				int quantity = GetIntegerFromUser();
-				didItWork = UpdateQuantity(databaseObject, orderId, quantity, bookId);
-			}
-
-			break;
-
-		case 2:
-			printf("Enter the book ID you would like to add to your order:\n");
-			int bookId = GetIntegerFromUser();
-			if (!SearchBookTableWithId(databaseObject, bookId))
-			{
-				printf("Book does not exist.\n");
-				didItWork = false;
-			}
-			else
-			{
-				printf("Enter the number of copies you'd like to add to the order:\n");
-				int quantity = GetIntegerFromUser();
-				didItWork = UpdateOrderBooks(databaseObject, orderId, bookId, quantity);
-			}
-
-			break;
-
-		case 3:
-			printf("Returning to main menu...\n");
-			break;
-
-		default:
-			printf("Please choose one of the listed options.\n");
-			menu = 0;
-			break;
-		}
-	}
-
-	return didItWork;
-}
-
-bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity, int bookId)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE OnlineOrder\n"
-		"SET Quantity = '%d'\n"
-		"WHERE OnlineOrderId = %d AND BookId = %d;", quantity, orderId, bookId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
-bool UpdateOrderBooks(MYSQL* databaseObject, int orderId, int bookId, int quantity)
-{
-	char query[MAX_STRING_SIZE];
-
-	sprintf(query,
-		"UPDATE OnlineOrder\n"
-		"SET Quantity = '%d'\n"
-		"WHERE OnlineOrderId = %d AND BookId = %d;", quantity, orderId, bookId);
-
-	if (!SendQueryToDatabase(databaseObject, query))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
 }
