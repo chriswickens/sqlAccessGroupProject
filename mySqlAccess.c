@@ -298,7 +298,7 @@ char PromptForYesOrNo()
 		input = getchar();
 
 		// Clear any extra characters from the input buffer
-		ClearCarriageReturn(input);
+		//ClearCarriageReturn(input);
 
 		// Check if the input is a valid Y/y or N/n
 		if (input == 'Y' || input == 'y' || input == 'N' || input == 'n')
@@ -2806,11 +2806,10 @@ int main(void)
 	printf("Do you want to login with user inputs or defaults?\n");
 	printf("Enter 'y' to do so. Any other input will login with defaults.\n");
 
-	char yesOrNo[MAX_STRING_SIZE] = { "" };
-	fgets(yesOrNo, sizeof(yesOrNo), stdin);
+	char yesOrNo = PromptForYesOrNo();
 
-	// If user enters 'y', then allow them to enter with
-	if (strcmp(yesOrNo, "Y\n") == 0)
+	// If user enters 'Y', then allow them to enter with
+	if (yesOrNo == "Y" || yesOrNo == "y")
 	{
 		 //Used for logging in with user input
 
