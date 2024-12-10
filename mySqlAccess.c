@@ -240,7 +240,6 @@ int GetBookYearFromUser()
 	while (scanf("%d", &year) != 1 || year < YEARMIN || year > YEARMAX)
 	{
 		printf("Invalid year. Please enter a year between %d and %d: ", YEARMIN, YEARMAX);
-		//while (getchar() != '\n'); // Clear input buffer
 	}
 	return year;
 }
@@ -248,11 +247,11 @@ int GetBookYearFromUser()
 // Check for white space in a string
 bool NoWhitespaceCheck(char* name)
 {
-	int asciiValue = ' ';								// character we are searching for
+	int asciiValue = ' '; // character we are searching for
 	char* pointer = NULL;
 
-	pointer = strchr(name, asciiValue);					// searches the user input email address for the ' '
-	if (pointer != NULL)								// if the pointer find a ' ' character return false
+	pointer = strchr(name, asciiValue);	// searches the user input email address for the ' '
+	if (pointer != NULL) // if the pointer find a ' ' character return false
 	{
 		return false;
 	}
@@ -300,14 +299,14 @@ void ClearCarriageReturn(char buffer[])
 // Basic email validation
 bool ValidateEmailAddress(char* address)
 {
-	//const char email[MAX_STRING_SIZE] = address;			// string to hold the user input value
-	const char emailEnding[MAX_STRING_SIZE] = ".com";		// used to search user string for the first occurrence of '.com'
-	char* dotCom = NULL;							// pointer used for strstr function
-	int ch = '@';									// the character, in ASCII value, that we are searching for '@'
-	char* pointer = NULL;							// pointer used for strchr function
 
-	pointer = strchr(address, ch);					// searches the user input email address for the '@'
-	dotCom = strstr(address, emailEnding);			// searches for the first occurrence of '.com' -- this could possible be tricked?
+	const char emailEnding[MAX_STRING_SIZE] = ".com"; // used to search user string for the first occurrence of '.com'
+	char* dotCom = NULL; // pointer used for strstr function
+	int ch = '@'; // the character, in ASCII value, that we are searching for '@'
+	char* pointer = NULL; // pointer used for strchr function
+
+	pointer = strchr(address, ch); // searches the user input email address for the '@'
+	dotCom = strstr(address, emailEnding); // searches for the first occurrence of '.com' -- this could possible be tricked?
 
 	// if either pointer is null, aka it did not find the occurrence of those requirements
 	if (pointer == NULL || dotCom == NULL)
@@ -321,7 +320,7 @@ bool ValidateEmailAddress(char* address)
 // Basic postal code validation
 bool ValidatePostalCode(char* postalCode)
 {
-	// Check all the stuff
+	// Check 6 pieces of string
 	if (strlen(postalCode) != 6 ||
 		!isalpha(postalCode[0]) ||
 		!isdigit(postalCode[1]) ||
@@ -403,6 +402,7 @@ bool DatabaseLoginWithUserInput(MYSQL* databaseObject)
 	printf("Please enter the database name (Ex: bookstore): ");
 	GetString(databaseName);
 
+	// Attempt connection
 	if (!ConnectToDatabase(databaseObject, serverAddress, userName, password, databaseName))
 	{
 		// Did not connect
@@ -417,10 +417,11 @@ bool DatabaseLoginWithUserInput(MYSQL* databaseObject)
 // Login to the database using hard coded #define values
 bool DatabaseLoginWithProgramDefaults(MYSQL* databaseObject)
 {
-	if (!ConnectToDatabase(databaseObject, 
-		DEFAULT_DATABASE_SERVER_ADDRESS, 
-		DEFAULT_DATABASE_USERNAME, 
-		DEFAULT_DATABASE_PASSWORD, 
+	// Attempt connection using program defaults
+	if (!ConnectToDatabase(databaseObject,
+		DEFAULT_DATABASE_SERVER_ADDRESS,
+		DEFAULT_DATABASE_USERNAME,
+		DEFAULT_DATABASE_PASSWORD,
 		DEFAULT_DATABASE_NAME))
 	{
 		// Did not connect
@@ -441,6 +442,7 @@ bool ConnectToDatabase(MYSQL* databaseObject, char* server, char* userName, char
 		// Close connection
 		mysql_close(databaseObject);
 
+		// Connection failed
 		return false;
 	}
 
@@ -454,7 +456,6 @@ bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 	if (mysql_query(databaseObject, queryString) != 0)
 	{
 		printf("Failed on query!\n");
-		//mysql_close(databaseObject); // I commented this out, to prevent any issues when accessing the database.
 		return false;
 	}
 	// The query was successful!
@@ -462,7 +463,6 @@ bool SendQueryToDatabase(MYSQL* databaseObject, char* queryString)
 }
 
 // Checks to see if any rows were returned from a MYSQL_RESULT
-// returns true if there was at least 1  row returned
 bool CheckRowResult(MYSQL_RES* resultToCheck)
 {
 	if (mysql_num_rows(resultToCheck) == 0)
@@ -503,11 +503,10 @@ bool CreateCustomer(MYSQL* databaseObject)
 		GetString(email);
 	}
 
-	// Check if the customer email does exist and return to main menu
+	// Check if the customer email does exist and return to main menu if they do
 	if (SearchCustomerTableForEmail(databaseObject, email))
 	{
-		printf("CUSTOMER FOUND!");
-		printf("Cannot add customer, a customer with the email %s already exists!\nPress any key to return to main menu...", email);
+		printf("Cannot add customer, a customer with the email %s already exists!\nPress any key to return to main menu...\n", email);
 		char returnNothing = getchar();
 		return false;
 	}
@@ -541,18 +540,14 @@ bool CreateCustomer(MYSQL* databaseObject)
 			return false;
 		}
 
-		else
-		{
-			// DONT Reuse the address, so skip getting the postal code
-			getPostalCode = false;
-		}
+		// If they do want to use the existing ID
+		// No more processing is necessary
+		getPostalCode = false;
 	}
 
-	// If they entered a brand new address
-	// This will let the user:
-	// Enter a new postal code, create the new address in the address table
-	// Search the address table once added to get the newly added addresses addressId
-	// Use the NEW addressId and customer information to create the customer entry.
+	// This will be skipped in the event the user wishes to re-use
+	// an existing address that was found, otherwise it will run to complete getting
+	// the address postal code, and it will create the new address to be used for the new customer
 	if (getPostalCode)
 	{
 		// Get the postal code from the user
@@ -567,7 +562,7 @@ bool CreateCustomer(MYSQL* databaseObject)
 		// If the NEW address could not be added successfully
 		if (!CreateNewAddress(databaseObject, streetNumber, streetName, postalCode))
 		{
-			// AddNewAddress was unsuccessful
+			// CreateNewAddress was unsuccessful
 			printf("Error adding new address from customer creation, please contact support!\n");
 			return false;
 		}
@@ -790,7 +785,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 	case 'Y': // yes case
 		printf("Please enter a customer ID to update.\n");
 		customerToUpdate = GetIntegerFromUser();
-		
+
 		// does that customer exist
 		if (!SearchCustomerTableById(databaseObject, customerToUpdate))
 		{
@@ -854,7 +849,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 
 				// get new street name
 				printf("Please enter a street name:\n");
-				GetString(streetName); 
+				GetString(streetName);
 
 				// do the street name/number combo already exist?
 				if (SearchAddressTable(databaseObject, streetNumber, streetName, addressId))
@@ -867,7 +862,7 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 					{
 						int addrId = addressId[0] - '0';		// changes into an ASCII readable number
 						// updates customer address id to the one returned by the search
-						didItWork = UpdateCustomerAddressId(databaseObject, customerToUpdate, addrId); 
+						didItWork = UpdateCustomerAddressId(databaseObject, customerToUpdate, addrId);
 					}
 					else
 					{
@@ -881,14 +876,14 @@ bool UpdateCustomerInformation(MYSQL* databaseObject)
 					// if it does not exist get a postal code
 					printf("Please enter a postal code.\n");
 					GetString(postalCode);
-					
+
 					// loop to force valid postal code
 					while (!ValidatePostalCode(postalCode))
 					{
 						printf("ERROR: Please enter the customers POSTAL CODE (NO SPACES PLEASE EX: N6C3X7: ");
 						GetString(postalCode);
 					}
-					
+
 					// add the new address
 					didItWork = CreateNewAddress(databaseObject, streetNumber, streetName, postalCode);
 					// get the id for the new address
@@ -956,7 +951,7 @@ bool SearchCustomerTableById(MYSQL* databaseObject, int customerIdToCheck)
 			printf("Customer with ID %d does not exist.\n", customerIdToCheck);
 			return false;
 		}
-		
+
 		// The result has at LEAST ONE row, the customer DOES exist!
 		// Free the result for the customer so memory isnt still consumed by it
 		mysql_free_result(customerResult);
@@ -2113,8 +2108,8 @@ bool DeleteBookRecord(MYSQL* databaseObject)
 			printf("OrderProduct records where OnlineOrderId containing multiple books, but including this book ID deletion failed!\n");
 			return false;
 		}
-		printf("OrderProduct records where OnlineOrderId containing multiple books, but including this book ID deletion successful!\n");	
-		
+		printf("OrderProduct records where OnlineOrderId containing multiple books, but including this book ID deletion successful!\n");
+
 		// Delete OrderProduct records that only have this book as part of its order
 		char deleteOrderProductQuery[MAX_STRING_SIZE];
 		sprintf(deleteOrderProductQuery, "DELETE FROM OrderProduct WHERE BookId = %d;", bookIdToCheck);
@@ -2164,7 +2159,7 @@ bool DeleteBookRecord(MYSQL* databaseObject)
 		printf("Deletion process concluded.\n");
 
 		return true;
-		
+
 
 	}
 	else  // User chose to cancel deletion so cancel the deletion and exit
@@ -2932,7 +2927,7 @@ bool UpdateBookInformation(MYSQL* databaseObject)
 			if ((publicationYear < YEARMIN) || (publicationYear > YEARMAX))
 			{
 				printf("Invalid year of publication.\n");
-				
+
 				didItWork = false;
 				break;
 			}
@@ -2942,7 +2937,7 @@ bool UpdateBookInformation(MYSQL* databaseObject)
 
 		case 4:
 			price = GetFloatFromUser();
-			
+
 			didItWork = UpdateBookPrice(databaseObject, bookID, price);
 			break;
 
@@ -3162,7 +3157,7 @@ bool UpdateOrderInformation(MYSQL* databaseObject)
 	printf("2) Add another book to your order\n");
 
 	int menu = GetIntegerFromUser();
-	while (menu == 0) 
+	while (menu == 0)
 	{
 		switch (menu)
 		{
@@ -3212,7 +3207,7 @@ bool UpdateOrderInformation(MYSQL* databaseObject)
 		}
 	}
 
-	return didItWork; 
+	return didItWork;
 }
 
 bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity, int bookId)
