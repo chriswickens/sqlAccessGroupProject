@@ -30,7 +30,7 @@
 // Connection details
 #define DEFAULT_DATABASE_SERVER_ADDRESS "localhost"
 #define DEFAULT_DATABASE_USERNAME "root"
-#define DEFAULT_DATABASE_PASSWORD "6741"
+#define DEFAULT_DATABASE_PASSWORD "Sah@-123"
 #define DEFAULT_DATABASE_NAME "bookstore"
 
 // Date ranges
@@ -105,6 +105,8 @@ bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address
 bool DeleteCustomerRecord(MYSQL* databaseObject);
 bool SearchCustomerTableById(MYSQL* databaseObject, int customerToUpdate);
 void deleteCustomerImplication(void);
+bool CheckAddressSharedQuery(MYSQL* databaseObject, int customerIdNumber);
+bool CheckAddressQuery(MYSQL* databaseObject, int customerIdNumber);
 bool UpdatePublicationYear(MYSQL* databaseObject, int bookId, int year);
 
 // BOOK table CRUD
@@ -151,11 +153,16 @@ bool GetAndDisplayCustomerTable(MYSQL* databaseObject, int* customerIds, int* si
 // UPDATE
 bool UpdateOrderInformation(MYSQL* databaseObject);
 bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity, int bookId);
+bool UpdateOrderBooks(MYSQL* databaseObject, int orderId, int bookId, int quantity);
 
 // DELETE
 void deleteOrderImplication(void);
 bool CheckOrderIdExistsQuery(MYSQL* databaseObject, int orderIdNumber);
 bool DeleteOrderRecord(MYSQL* databaseObject);
+
+// Customer Support Prototype
+void customerSupportInformation(void);
+
 
 
 /*
@@ -1693,12 +1700,13 @@ bool UpdateOrderInformation(MYSQL* databaseObject)
 	int menu = GetIntegerFromUser();
 	while (menu == 0)
 	{
+		int bookId = 0;
 		switch (menu)
 		{
 		case 1:
 			printf("Enter the book ID you'd like to change and the order ID associated with it.\n");
 			printf("Book ID: \n");
-			int bookId = GetIntegerFromUser();
+			bookId = GetIntegerFromUser();
 			if (!SearchBookTableWithId(databaseObject, bookId))
 			{
 				printf("Book does not exist.\n");
@@ -1715,7 +1723,7 @@ bool UpdateOrderInformation(MYSQL* databaseObject)
 
 		case 2:
 			printf("Enter the book ID you would like to add to your order:\n");
-			int bookId = GetIntegerFromUser();
+			bookId = GetIntegerFromUser();
 			if (!SearchBookTableWithId(databaseObject, bookId))
 			{
 				printf("Book does not exist.\n");
@@ -2134,24 +2142,6 @@ bool SearchBookTableWithId(MYSQL* databaseObject, int bookId)
 }
 
 
-
-/* --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-			DELETE FUNCTIONS BELOW
-
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-
-// need to include this as a prototype if using a getch() menu system
-// Main delete menu
-void deleteMenu(void)
-{
-	printf("***What do you want to delete?***\n\n");
-	printf("\t(1) Customer\n");
-	printf("\t(2) Book\n");
-	printf("\t(3) Order\n");
-	printf("\t(x) Cancel Deletion\n");
-}
-
-
 // Customer Deletion Functions
 
 // Delete Customer Implications message
@@ -2202,17 +2192,7 @@ bool CheckAddressQuery(MYSQL* databaseObject, int customerIdNumber)
 }
 
 
-
-
-
-/*
-*
-* CAN BE REUSED at some level, some changes will need to be made
-* Must check if OnlineOrder is using customerID, cannot delete if being used in onlineOrder
-* Should it delete the address associated with the customer?
-*
-*
-*/
+// Delete customer record
 bool DeleteCustomerRecord(MYSQL* databaseObject)
 {
 	// Prompt user to confirm deleting a customer and explain implications.
@@ -2501,15 +2481,7 @@ bool CheckBookIdExistsQuery(MYSQL* databaseObject, int bookIdNumber)
 	return true;
 }
 
-
-/*
-*
-* CAN BE REUSED at some level, some changes will need to be made
-* Must check if OnlineOrder is using customerID, cannot delete if being used in onlineOrder
-* Should it delete the address associated with the customer?
-*
-*
-*/
+// Delete book record
 bool DeleteBookRecord(MYSQL* databaseObject)
 {
 	// Prompt user to confirm deleting a book and explain implications.
@@ -2663,8 +2635,6 @@ bool DeleteBookRecord(MYSQL* databaseObject)
 }
 
 
-
-
 // Delete order functions
 
 // Delete order implications message
@@ -2701,14 +2671,7 @@ bool CheckOrderIdExistsQuery(MYSQL* databaseObject, int orderIdNumber)
 }
 
 
-/*
-*
-* CAN BE REUSED at some level, some changes will need to be made
-* Must check if OnlineOrder is using customerID, cannot delete if being used in onlineOrder
-* Should it delete the address associated with the customer?
-*
-*
-*/
+// Delete order record
 bool DeleteOrderRecord(MYSQL* databaseObject)
 {
 	// Prompt user to confirm deleting an order and explain implications.
@@ -2816,198 +2779,41 @@ bool DeleteOrderRecord(MYSQL* databaseObject)
 	return true;
 }
 
-
-
-
-
-/* --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-			DELETE FUNCTIONS ABOVE
-
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+// Customer support information
+void customerSupportInformation(void)
+{
+	printf("\nIf you require assistance, please contact us via email or phone.\n\n");
+	printf("Contact Information\n\n");
+	printf("Email:\tfinalProject@email.com\n");
+	printf("Phone:\t(519) 123-4567\n");
+}
 
 
 
 int main(void)
 {
-	// What we've said our project will do
-	// CRUD STATUS for Project:
-	// 
-	// CUSTOMER CRUD
-	// Completed: 
-	// Read (Good!)
-	// 
-	// Almost Completed:
-	// Update - do we want to update based on the address ID or the address information and update the ID using that?
-	//  - Example: If the customer wants to update their address, let them enter a new address, then check it against the table
-	//		- if it exists, grab the existing ID and update the customer
-	//		- otherwise: Create a new address entry and get that ID, then use it to update?
-	// 
-	// Not finished:
-	// Customer CREATE: We need to decide what part of the customer info will be used to check if the customer already exists
-	// email
-	// firstname
-	// lastname
-	// addressid(FK) - Should we list the addresses, or just get the user input, check if it exists, and if it does:
-	// Just add the addressId of the existing address without even telling them, since they wanted that address anyway?
-	// 
-	// Customer DELETE: Needs to be completed, and check onlineorder table to see if customerId is used for any order
-	// 
-	// BOOK CRUD
-	// NOTHING COMPLETED YET
-	// CREATE Requirements:
-	// title
-	// pagecount
-	// year
-	// price
-	// ISBN
-	// publisherID(FK) : We should probably display a list of publishers, so the user creating the book can enter a publisher ID to 
-	// attach to the BOOK creation
-	// 
-	// READ: Simple to implement
-	// 
-	// UPDATE Requirements:
-	// title
-	// pagecount
-	// year
-	// price
-	// ISBN
-	// publisherID(FK) : Do we let the user search by publisher NAME or publisher id?
-	// 
-	// DELETE Requirements:
-	// Checks need to be completed, a book cannot be deleted if that bookid exists in the following:
-	// AuthorBook
-	// OnlineOrder
-	// OrderProduct
-	// StoreInventory
-	// 
-	// 
-	// ORDER CRUD
-	// Nothing completed yet!
-	// We should probably have an order check the stock level in the inventory table to either
-	// let them order the book, or tell them the order will be fulfilled when the book is in stock for example?
-	// 
-	// CREATE Requirements: 
-	// quantity
-	// orderdate
-	// bookId(FK) - Again, do we show a list, or use the book name?
-	// customerId(FK) -  probably use customer email?
-	// 
-	// READ requirements: What? Just make the function lol
-	// 
-	// UPDATE Requirements:
-	// quantity
-	// orderdate
-	// bookId(FK) - Again, do we show a list, or use the book name?
-	// customerId(FK) -  probably use customer email?
-	// 
-	// DELETE Requirements:
-	// Check if orderProduct uses onlineOrderId, if the order ID is used somewhere there, it cannot be deleted
-	// 
-	// 
-	// Add a customer
-	// add a book
-	// create an order
-	// look up/read a customer's details
-	// look up/read a book's details
-	// look up/read an order's details
-	// update a customer
-	// update a book
-	// update an order
-	// delete a customer
-	// delete a book
-	// delete an order
-	// Ability to reconfigure connection settings and change IP address of MySQL server (I think wickens knows what this is...)
-	// Ability to access a HELP page
-	// Ability to save user’s credentials to access the project
-
-
-
-	// General plan of what we could do in main:
-
-	// 1) Login details
-	// - user enters login details to enter the program
-	// - first we check if there's any login information in the sql
-	// - if it exists, we ask for a login and validate that what the user enters matches what we have
-	// - otherwise, we ask the user to create a new login and we save that in the sql
-
-	// 2) First menu
-	// - This menu should be used to break down the options into their own menus. An example is below:
-	// - 1) I want to do a process involving customers!
-	// - 2) I want to do a process involving books!
-	// - 3) I want to do a process involving orders!
-	// - 4) I need help!!!
-	// - 5) I need to change my login credentials!
-
-	// 3) Sub menus
-	// - these menus are the sub menus of the options above
-	// 
-	// 3.1) Customers
-	// 1) Add customer
-	// 2) Read customer
-	// 3) update customer
-	// 4) delete customer
-	// 
-	// 3.2) Book
-	// 1) Add book
-	// 2) Read book
-	// 3) update book
-	// 4) delete book
-	// 
-	// 3.3) Order
-	// 1) Add order
-	// 2) Read order
-	// 3) update order
-	// 4) delete order
-	// 
-	// 3.4) Help page
-	// - this is mainly up to us on what we should have
-	// - we should probably have an email and phone number for customer support
-	// - maybe some basic details or an faq?
-	// - this could also be a menu such as below:
-	// 1) I need customer support!
-	// 2) How do I add a customer?
-	// 3) etc...
-	// - if we want to make this extremely simple, we could just have it be a page detailing where they can 
-	// reach us for help (i.e. email us; or call us at this number)
-	// 
-	// 3.5) Change login Credentials
-	// - this section allows the user to change their credentials
-	// - just ask for password
-	// - if the password is right, basically follow creating a new login and we save to sql
-	//
-	// 
-	// Notes:
-	// - to make it easier for us we could integrate getch() for our menu system
-	// - that way we only need actual validation for the sql parts where we're asking for information directly
-	//
-	//
-
-
-
-
-
 	// 1) initialize a database connection objects
-MYSQL* databaseObject = mysql_init(NULL);
-if (databaseObject == NULL) // If the object is NULL, it didnt work.
-{
-	printf("Error! DB is null!");
-	return EXIT_FAILURE;
+	MYSQL* databaseObject = mysql_init(NULL);
+	if (databaseObject == NULL) // If the object is NULL, it didnt work.
+	{
+		printf("Error! DB is null!");
+		return EXIT_FAILURE;
 
-	mysql_close(databaseObject);
-}
+		mysql_close(databaseObject);
+	}
 
-// Used for logging in with program defaults
+	// Used for logging in with program defaults
 
-if (DatabaseLoginWithProgramDefaults(databaseObject))
-{
-	printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-}
-else
-{
-	printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-	return EXIT_FAILURE;
-	// This is where the program goes to die, instead of the switch.
-}
+	if (DatabaseLoginWithProgramDefaults(databaseObject))
+	{
+		printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+	}
+	else
+	{
+		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+		return EXIT_FAILURE;
+		// This is where the program goes to die, instead of the switch.
+	}
 
 //------------------- CHECK WITH CHRIS ---------------------------------------------------------
 	// Used for logging in with user input
@@ -3033,7 +2839,7 @@ else
 	{
 
 		// Main menu
-		printf("Please enter a menu selection: \n");
+		printf("\nPlease enter a menu selection: \n");
 		printf("\t1) Add customer.\n");
 		printf("\t2) Add book.\n");
 		printf("\t3) Add order.\n");
@@ -3046,7 +2852,7 @@ else
 		printf("\t10) Delete customer.\n");
 		printf("\t11) Delete book.\n");
 		printf("\t12) Delete order.\n");
-		printf("\t13) Help page.\n");
+		printf("\t13) Customer Support Details.\n");
 		printf("\t14) EXIT PROGRAM\n");
 
 		// Get user menu selection
@@ -3094,7 +2900,7 @@ else
 
 		case READ_CUSTOMER:
 			printf("\nRead customer - Selected item #%d\n", menuItem);
-			if (!ReadCustomer(databaseObject))
+			if (!ReadCustomerTable(databaseObject))
 			{
 				printf("failed to read customer - MAIN!!\n");
 			}
@@ -3208,7 +3014,7 @@ else
 			break;
 
 		case HELP_PAGE:
-
+			customerSupportInformation();
 			break;
 
 		case EXIT_PROGRAM:
@@ -3233,4 +3039,3 @@ else
 
 
 
-}
