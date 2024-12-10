@@ -46,6 +46,23 @@
 #define YEARMAX 2024
 #define MAX_DATABASE_TABLE_ROWS 999
 
+// Main Menu Options
+#define ADD_CUSTOMER		1
+#define ADD_BOOK			2	
+#define ADD_ORDER			3
+#define READ_CUSTOMER		4	
+#define READ_BOOK			5
+#define READ_ORDER			6
+#define UPDATE_CUSTOMER		7
+#define UPDATE_BOOK			8
+#define UPDATE_ORDER		9
+#define DELETE_CUSTOMER		10
+#define DELETE_BOOK			11
+#define DELETE_ORDER		12
+#define HELP_PAGE			13
+#define EXIT_PROGRAM		14
+
+
 // Function prototypes
 // Tool Function Prototypes
 int GetIntegerFromUser();
@@ -133,7 +150,7 @@ bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size)
 
 // UPDATE
 bool UpdateOrderInformation(MYSQL* databaseObject);
-bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity);
+bool UpdateQuantity(MYSQL* databaseObject, int orderId, int quantity, int bookId);
 
 // DELETE
 void deleteOrderImplication(void);
@@ -2466,7 +2483,7 @@ bool DeleteOrderRecord(MYSQL* databaseObject)
 
 
 
-int main2()
+int main(void)
 {
 	// What we've said our project will do
 	// CRUD STATUS for Project:
@@ -2625,204 +2642,232 @@ int main2()
 
 
 
-
-
-
 	// 1) initialize a database connection objects
-	MYSQL* databaseObject = mysql_init(NULL);
-	if (databaseObject == NULL) // If the object is NULL, it didnt work.
-	{
-		printf("Error! DB is null!");
-		return EXIT_FAILURE;
+MYSQL* databaseObject = mysql_init(NULL);
+if (databaseObject == NULL) // If the object is NULL, it didnt work.
+{
+	printf("Error! DB is null!");
+	return EXIT_FAILURE;
 
-		/*
-		*
-		* THIS CLOSE MUST BE PUT INTO THE EXIT PATH OF THE SWITCH STATEMENT! THE DB MUST BE CLOSED!
-		*/
+	mysql_close(databaseObject);
+}
 
-		mysql_close(databaseObject);
-	}
+// Used for logging in with program defaults
 
-	if (ConnectToDatabase(databaseObject, DEFAULT_DATABASE_SERVER_ADDRESS, DEFAULT_DATABASE_USERNAME, DEFAULT_DATABASE_PASSWORD, DEFAULT_DATABASE_NAME))
-	{
-		printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-	}
-	else
-	{
-		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-		return EXIT_FAILURE;
-		// This is where the program goes to die, instead of the switch.
-	}
+if (DatabaseLoginWithProgramDefaults(databaseObject))
+{
+	printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+}
+else
+{
+	printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+	return EXIT_FAILURE;
+	// This is where the program goes to die, instead of the switch.
+}
+
+//------------------- CHECK WITH CHRIS ---------------------------------------------------------
+	// Used for logging in with user input
+
+	//if (DatabaseLoginWithUserInput(databaseObject))
+	//{
+	//	printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+	//}
+	//else
+	//{
+	//	printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
+	//	return EXIT_FAILURE;
+	//	// This is where the program goes to die, instead of the switch.
+	//}
+//------------------- CHECK WITH CHRIS ---------------------------------------------------------
+
 
 	// Start of main menu
 	int exitProgram = 0;
 
 
-	/* Below are some test cases. Following along will show you changes to the database as well as what the user sees. It also
-	*  includes errors the user can make and how the program handles it.
-	*/
 	while (!exitProgram)
 	{
+
+		// Main menu
 		printf("Please enter a menu selection: \n");
-		printf("\t1) Create new rental record...\n");
-		printf("\t2) Update customer details...\n");
-		printf("\t3) Read customer rental history...\n");
-		printf("\t4) Delete customer records...\n");
-		printf("\t5) EXIT PROGRAM\n");
+		printf("\t1) Add customer.\n");
+		printf("\t2) Add book.\n");
+		printf("\t3) Add order.\n");
+		printf("\t4) Look up a customer's details.\n");
+		printf("\t5) Look up a book's details.\n");
+		printf("\t6) Look up an order's details.\n");
+		printf("\t7) Update customer.\n");
+		printf("\t8) Update book.\n");
+		printf("\t9) Update order.\n");
+		printf("\t10) Delete customer.\n");
+		printf("\t11) Delete book.\n");
+		printf("\t12) Delete order.\n");
+		printf("\t13) Help page.\n");
+		printf("\t14) EXIT PROGRAM\n");
 
 		// Get user menu selection
 		int menuItem = GetIntegerFromUser();
 
 		switch (menuItem)
 		{
-			/*	To create a new rental record enter 1. Enter a customer id that's valid such as 20. This will get you the customer
-			*	SHARON ROBINSON. Enter the movie inventory_id such as 20. This will get you a movie called AMELIE HELLFIGHTERS and
-			*	it is available for rent. Entering the staff_id as 1 will find the staff member Mike Hillyer. This will get be
-			*	a successful rental entry.
-			*
-			*	Entering any information that doesn't exist will not add a new rental entry. For example, entering the value 1000 for
-			*	for customer_id will tell the user that that customer Id doesn't exist, so the rental entry can't be added.
-			*/
-
-		case 1:
-			//printf("\nAdd new rental transaction - Selected item #%d\n", menuItem);
-			//if (!AddNewRental(databaseObject))
-			//{
-			//	printf("Did not successfully add new rental entry!\n\n");
-			//}
-			//else
-			//{
-			//	printf("Rental entry successful!!\n\n");
-			//}
+		case ADD_CUSTOMER:
+			printf("\nAdd new customer - Selected item #%d\n", menuItem);
+			if (!CreateCustomer(databaseObject))
+			{
+				printf("Failed to create new customer! - MAIN\n");
+			}
+			else
+			{
+				printf("Add new customer so far so good!! - MAIN\n");
+			}
 
 			break;
 
-			/*	To update a customer's information enter 2. Enter Y to confirm you want to update a customer's information. Entering
-			*	a N will return you to the menu. After entering Y, user is prompted to enter the ID of the customer they want to
-			*	update. Entering characters will tell the user it's an invalid entry and to try again.In this example, we are going to
-			*	input 20, which is the customer SHARON ROBINSON. User is then prompted to select an option they'd like to update,
-			*   which is detailed below.
-			*
-			*	Choose to update First Name by inputting 1. When inputting a name, any whitespace will cause the user to go back to
-			*	choosing an update option and alert them to not include white space. Inputting a first name such as Lily will update
-			*	the name from SHARON to Lily. The user is then returned to the main menu.
-			*
-			*	Choose to update Last Name by inputting 2. The process for this option is the same as the First Name option, except
-			*	the last name of the customer is updated. If we input Jones, the last name updates from ROBINSON to Jones.
-			*
-			*	Choose Email by inputting 3. If we input jjones@mail.com, the email updates from SHARON.ROBINSON@sakilacustomer.org
-			*	to jjones@mail.com. The email input must include an '@' symbol and end in '.com'. Failure to follow this format will
-			*	send an invalid entry message to the user and return them to the update menu. For example, inputting '5', 'mail.com',
-			*	or 'jones@com' will trigger this response.
-			*
-			*	Choose Address by inputting 4. If we input 10, the address updates from 24 to 10. The inputted id must be between 1
-			*	and 605 since those are the available addresses. So inputting any characters such as 'address' or 'd' will notify
-			*	user it's invalid and allow them to re-enter another input. Inputting integers out of the range such as '0' or '606'
-			*	will inform them the ID is invalid and return them to the update menu.
-			*
-			*	Choose Return to main menu by inputting 5. This option returns the user to the main menu and alerts them they didn't
-			*	update customer information.
-			*
-			*	Inputting a character such as 'd' or 'menu' will alert the user it's an invalid entry and to try again. Inputting an
-			*	integer that isn't listed as an option such as '0' or '6' will alert the user to choose one of the listed options and
-			*	allow them to input a valid integer.
-			*/
-
-
-		case 2:
-			//printf("\nUpdate Customer Information - Selected item #%d\n", menuItem);
-			//if (!UpdateCustomerInformation(databaseObject))
-			//{
-			//	printf("Did not update customer information!\n\n");
-			//}
-			//else
-			//{
-			//	printf("Customer information successfully updated!\n\n");
-			//}
-			break;
-
-			/*	To read a customer's rental history, input 3. Below are the following inputs:
-			*
-			*	Enter a customer Id: input 21 to find the records of the customer MICHELLE CLARK. Inputting a customer ID that
-			*	doesn't exist such 1000 will alert the user the ID doesn't exist and returns the user to the main menu.
-			*
-			*	Enter a starting date range: input 1900. Inputting characters such as 'd' or 'date' will alert the user it's invalid
-			*	and to enter another input. Inputting an integer out of range such as '0' or '3000' will alert the user to enter an
-			*	integer within range.
-			*
-			*	Enter a starting month: input 1. Error messages are given same as above if characters are inputted or integers out
-			*	of range are inputted.
-			*
-			*	Enter a day: input 1. Error messages are given same as above if characters are inputted or integers out of range
-			*	are inputted.
-			*
-			*	The starting date is 1900-01-01. Now we do the ending date which follows the same process as choosing the starting
-			*	date.
-			*
-			*	For the ending date range, select the year to be 2024, the month to be 12, and the day to be 31. This will give an
-			*	ending date of 2024-12-31.
-			*
-			*	The rental history of MICHELLE CLARK between these two dates is now visible to the user. Some examples of what you
-			*	should see are shown below:
-			*
-			*	Customer Name: MICHELLE CLARK
-			*	Movie Title: DWARFS ALTER
-			*	Rental Date: 2006-02-14 15:16:03
-			*	Return Date: (null)
-			*
-			*	Customer Name: MICHELLE CLARK
-			*	Movie Title: BREAKING HOME
-			*	Rental Date: 2005-05-26 15:42:20
-			*	Return Date: 2005-05-31 13:21:20
-			*
-			*	The user is now returned to the main menu.
-			*/
-
-		case 3:
-			//printf("Complex Query - Viewing Rental History with Filters - Selected item #%d\n", menuItem);
-			//if (!CheckRentalHistory(databaseObject))
-			//{
-			//	printf("Unsuccessful query for rental history, try again!\n\n");
-			//}
-			//else
-			//{
-			//	printf("Rental history query successful!\n\n");
-			//}
+		case ADD_BOOK:
+			printf("\nAdd new book - Selected item #%d\n", menuItem);
+			if (!CreateBookEntry(databaseObject))
+			{
+				printf("Failed to add book!\n");
+			}
+			else
+			{
+				printf("Book added successfully!\n");
+			}
 
 			break;
 
-
-			/*	To delete a customer, input 4. Below are the following inputs:
-			*
-			*	User is shown the effects of deleting a customer and asked if they want to proceed. Input 'Y' to proceed with
-			*	deletion. If any other input is inputted, the user is returned to the main menu.
-			*
-			*	Enter customer ID: input 25. Customer is DEBORAH WALKER. This customer has no outstanding rental, so they can be
-			*	deleted. The user is shown the deletion process is going forward with the customer's rental, payment, customer info,
-			*	and customer address is deleted. The deletion process is concluded and the user is returned to the main menu.
-			*
-			*	Enter customer ID: input 22. Customer is LAURA RODRIGUEZ. This customer has an outstanding rental, so they can't be
-			*	deleted. The user is informed of this and the deletion process is cancelled.
-			*
-			*	If user inputs an id that doesn't exist such as '1000', the user is told the customer doesn't exist and the deletion
-			*	process is cancelled and they are returned to the main menu.
-			*/
-
-		case 4:
-			//printf("\nDeleting a Customer Record - Selected item #%d\n", menuItem);
-			//if (!DeleteCustomerRecord(databaseObject))
-			//{
-			//	printf("Did not delete customer!\n\n");
-			//}
-			//else
-			//{
-			//	printf("Customer deletion successful!!\n\n");
-			//}
+		case ADD_ORDER:
+			printf("\nAdd new order - Selected item #%d\n", menuItem);
+			if (!CreateOrder(databaseObject))
+			{
+				printf("Failed to create order!\n");
+			}
+			else
+			{
+				printf("Order created successfully!!\n");
+			}
 			break;
 
-			// To exit program, input 5. This exits the loop, which exits the program. If user inputs anything else aside from the
-			// availble menu options, they are told it's invalid and to choose a valid menu option.
-		case 5:
+		case READ_CUSTOMER:
+			printf("\nRead customer - Selected item #%d\n", menuItem);
+			if (!ReadCustomer(databaseObject))
+			{
+				printf("failed to read customer - MAIN!!\n");
+			}
+			else
+			{
+				printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
+			}
+
+			break;
+
+		case READ_BOOK:
+			printf("\nRead book - Selected item #%d\n", menuItem);
+			if (!ReadBookTable(databaseObject))
+			{
+				printf("failed to read BOOK - MAIN!!\n");
+			}
+			else
+			{
+				printf("FINISHED SUCCESSFUL READ OF BOOK!! - MAIN!!\n");
+			}
+
+			break;
+
+		case READ_ORDER:
+			printf("\nRead order - Selected item #%d\n", menuItem);
+			if (!ReadOrderTable(databaseObject))
+			{
+				printf("failed to read ORDER - MAIN!!\n");
+			}
+			else
+			{
+				printf("FINISHED SUCCESSFUL READ OF ORDER!! - MAIN!!\n");
+			}
+
+			break;
+
+		case UPDATE_CUSTOMER:
+			printf("\nUpdate customer - Selected item #%d\n", menuItem);
+			if (!UpdateCustomerInformation(databaseObject))
+			{
+				printf("Failed to update customer information.\n");
+			}
+			else
+			{
+				printf("Customer information updated.\n");
+			}
+
+			break;
+
+		case UPDATE_BOOK:
+			printf("\nUpdate book - Selected item #%d\n", menuItem);
+			if (!UpdateBookInformation(databaseObject))
+			{
+				printf("Failed to update book information!\n");
+			}
+			else
+			{
+				printf("Book information updated!\n");
+			}
+
+			break;
+
+		case UPDATE_ORDER:
+			printf("\nUpdate Order - Selected item #%d\n", menuItem);
+			if (!UpdateOrderInformation(databaseObject))
+			{
+				printf("Failed to update order information!\n");
+			}
+			else
+			{
+				printf("Order information updated!\n");
+			}
+
+			break;
+
+		case DELETE_CUSTOMER:
+			printf("\nDeleting a customer record - Selected item \n");
+			if (!DeleteCustomerRecord(databaseObject))
+			{
+				printf("Did not delete customer!\n\n");
+			}
+			else
+			{
+				printf("Customer deletion successful!!\n\n");
+			}
+			break;
+
+		case DELETE_BOOK:
+			printf("\nDeleting a book record - Selected item \n");
+			if (!DeleteBookRecord(databaseObject))
+			{
+				printf("Did not delete book!\n\n");
+			}
+			else
+			{
+				printf("Book deletion successful!!\n\n");
+			}
+			break;
+
+		case DELETE_ORDER:
+			printf("\nDeleting an order record - Selected item \n");
+			if (!DeleteOrderRecord(databaseObject))
+			{
+				printf("Did not delete order!\n\n");
+			}
+			else
+			{
+				printf("Order deletion successful!!\n\n");
+			}
+			
+			break;
+
+		case HELP_PAGE:
+
+			break;
+
+		case EXIT_PROGRAM:
 			printf("EXIT: Selected item #%d\n", menuItem);
 			exitProgram = 1;
 			break;
@@ -2844,159 +2889,52 @@ int main2()
 
 
 
-// I just did this so we can test creating new functions while maintaining the old main()
-// We can just remove this later when it's time to compile everything into the cohesive program menu
-int main()
-{
-
-	// 1) initialize a database connection objects
-	MYSQL* databaseObject = mysql_init(NULL);
-	if (databaseObject == NULL) // If the object is NULL, it didnt work.
-	{
-		printf("Error! DB is null!");
-		return EXIT_FAILURE;
-
-		mysql_close(databaseObject);
-	}
-
-	// Used for logging in with program defaults
-
-	if (DatabaseLoginWithProgramDefaults(databaseObject))
-	{
-		printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-	}
-	else
-	{
-		printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-		return EXIT_FAILURE;
-		// This is where the program goes to die, instead of the switch.
-	}
-
-	// Used for logging in with user input
-
-	//if (DatabaseLoginWithUserInput(databaseObject))
-	//{
-	//	printf("Connected to database: \"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-	//}
-	//else
-	//{
-	//	printf("Unable to connect to database:\"%s\"!\n\n", DEFAULT_DATABASE_NAME);
-	//	return EXIT_FAILURE;
-	//	// This is where the program goes to die, instead of the switch.
-	//}
-
-
-	// CODE GOES HERE
-	// Customer CREATE testing
-
-
-	// CUSTOMER table CREATE
-	//if (!CreateCustomer(databaseObject))
-	//{
-	//	printf("Failed to create new customer! - MAIN\n");
-	//}
-	//else
-	//{
-	//	printf("Add new customer so far so good!! - MAIN\n");
-	//}
-
-	// CUSTOMER table READ
-	//if (!ReadCustomer(databaseObject))
-	//{
-	//	printf("failed to read customer - MAIN!!\n");
-	//}
-	//else
-	//{
-	//	printf("FINISHED SUCCESSFUL READ OF CUSTOMER!! - MAIN!!\n");
-	//}
-
-
-
-	//// BOOK TABLE READ
-	//if (!ReadBookTable(databaseObject))
-	//{
-	//	printf("failed to read BOOK - MAIN!!\n");
-	//}
-	//else
-	//{
-	//	printf("FINISHED SUCCESSFUL READ OF BOOK!! - MAIN!!\n");
-	//}
-
-	//// ORDER table read
-	//if (!ReadOrderTable(databaseObject))
-	//{
-	//	printf("failed to read ORDER - MAIN!!\n");
-	//}
-	//else
-	//{
-	//	printf("FINISHED SUCCESSFUL READ OF ORDER!! - MAIN!!\n");
-	//}
-
-	// CREATE BOOK
-	//if (!CreateBookEntry(databaseObject))
-	//{
-	//	printf("Failed to add book!\n");
-	//}
-	//else
-	//{
-	//	printf("Book added successfully!\n");
-	//}
-
-	// UPDATE Book
-	if (!UpdateBookInformation(databaseObject))
-	{
-		printf("Failed to update book information!\n");
-	}
-	else
-	{
-		printf("Book information updated!\n");
-	}
-
-	//UpdatePageCount(databaseObject, 300, 1);
-
-	// UPDATE CUSTOMER
-	//if (!UpdateCustomerInformation(databaseObject))
-	//{
-	//	printf("Failed to update customer information.\n");
-	//}
-	//else
-	//{
-	//	printf("Customer information updated.\n");
-	//}
-
-	// CREATE ORDER
-	//if (!CreateOrder(databaseObject))
-	//{
-	//	printf("Failed to create order!\n");
-	//}
-	//else
-	//{
-	//	printf("Order created successfully!!\n");
-	//}
-
-	// CODE STOPS HERE
-
-	//printf("\nDeleting a book Record - Selected item \n");
-	//if (!DeleteBookRecord(databaseObject))
-	//{
-	//	printf("Did not delete customer!\n\n");
-	//}
-	//else
-	//{
-	//	printf("Book deletion successful!!\n\n");
-	//}
-
-	//DatabaseLoginWithUserInput();
-
-
-
-	// NECESSARY AT END
-	// Close the connection to the DB
-	mysql_close(databaseObject);
-
-	return EXIT_SUCCESS;
-
-}
+//// I just did this so we can test creating new functions while maintaining the old main()
+//// We can just remove this later when it's time to compile everything into the cohesive program menu
+//int main()
+//{
+//
+//
+//
+//
+//
+//	// CODE GOES HERE
+//	// Customer CREATE testing
+//
+//
+//
+//	// CUSTOMER table READ
+//
+//
+//
+//	//// BOOK TABLE READ
+//
+//	//// ORDER table read
+//
+//	// CREATE BOOK
+//
+//	// UPDATE Book
+//
+//	//UpdatePageCount(databaseObject, 300, 1);
+//
+//	// UPDATE CUSTOMER
+//
+//	// CREATE ORDER
+//
+//	// CODE STOPS HERE
+//
+//
+//	//DatabaseLoginWithUserInput();
+//
+//
+//
+//	// NECESSARY AT END
+//	// Close the connection to the DB
+//	mysql_close(databaseObject);
+//
+//	return EXIT_SUCCESS;
+//
+//}
 
 
 
