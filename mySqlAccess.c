@@ -86,6 +86,9 @@ bool UpdateCustomerAddressId(MYSQL* databaseObject, int customer_id, int address
 // Delete
 bool DeleteCustomerRecord(MYSQL* databaseObject);
 bool SearchCustomerTableById(MYSQL* databaseObject, int customerToUpdate);
+void deleteCustomerImplication(void);
+
+
 
 // BOOK table CRUD
 // CREATE
@@ -123,6 +126,8 @@ bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size)
 // UPDATE
 
 // DELETE
+void deleteOrderImplication(void);
+bool CheckOrderIdExistsQuery(MYSQL* databaseObject, int orderIdNumber);
 bool DeleteOrderRecord(MYSQL* databaseObject);
 
 
@@ -1764,7 +1769,7 @@ bool ReadAndGetCustomerTable(MYSQL* databaseObject, int* customerIds, int* size)
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
-
+// need to include this as a prototype if using a getch() menu system
 // Main delete menu
 void deleteMenu(void)
 {
@@ -1784,11 +1789,49 @@ void deleteCustomerImplication(void)
 	printf("You have chosen to delete a customer record.\n\n");
 	printf("Doing so will have the following effects:\n");
 	printf("\t1) Customer's personal information will be permanently deleted from the database.\n");
-	printf("\t2) All order records associated with this customer will be deleted from the database.\n");
-	printf("\t3) The address associated with this customer will be deleted from the database.\n\n");
+	printf("\t2) OrderProduct relating to this order will be permanently deleted from the database.\n");
+	printf("\t3) All order records associated with this customer will be deleted from the database.\n");
+	printf("\t4) The address associated with this customer will be deleted from the database.\n\n");
 	printf("Would you like to proceed with deleting a customer?\n\n");
 	printf("Enter 'Y' to proceed or any input to cancel.\n");
 }
+
+// Function to see if address is shared
+bool CheckAddressSharedQuery(MYSQL* databaseObject, int customerIdNumber)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery, "SELECT COUNT(*) AS NumberOfCustomersWithSameAddress FROM Customer WHERE AddressId = (SELECT AddressId FROM Customer WHERE CustomerId = %d);", customerIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+// Function to check address of customer
+bool CheckAddressQuery(MYSQL* databaseObject, int customerIdNumber)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery, "SELECT AddressId FROM customer WHERE CustomerId = %d;", customerIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+
+
 
 
 /*
@@ -1860,100 +1903,181 @@ bool DeleteCustomerRecord(MYSQL* databaseObject)
 			mysql_free_result(customerResult);
 		}
 
-		/*
+		// Notify user that customer's information is being deleted
+		printf("\nProceeding to delete customer's records...\n\n");
 
-		// we don't have a way to check status of order; may need to add order status to table for this...
-		// we also don't have payment... maybe we should add this too???
+		// Delete OrderProduct records that only have this book as part of its order
+		char deleteOrderProductQuery[MAX_STRING_SIZE];
+		sprintf(deleteOrderProductQuery, "DELETE FROM OrderProduct WHERE OnlineOrderId = (SELECT OnlineOrderId FROM OnlineOrder WHERE CustomerId = %d);", customerIdToCheck);
 
-
-		// Check if customer has returned all rented films
-		int customerIdToCheckForOutstandRentals = customerIdToCheck;
-		OutstandingRentalsQuery(databaseObject, customerIdToCheckForOutstandRentals);
-		MYSQL_RES* checkOutstandingRentals = mysql_store_result(databaseObject);
-
-		// If it failed to get any results for some reason
-		if (checkOutstandingRentals == NULL)
+		if (!SendQueryToDatabase(databaseObject, deleteOrderProductQuery))
 		{
-			// Print the SQL error
-			printf("Failed to get the result set! %s", mysql_error(databaseObject));
-			return EXIT_FAILURE;
-		}
-
-
-
-
-		// Check the returned rows to see if the query returned anything. If it doesn't, then delete the customer.
-		if (!CheckRowResult(checkOutstandingRentals))
-		{
-			// Notify user that customer's information is being deleted
-			printf("\nCustomer has no outstanding rentals!\nProceeding to delete customer's records...\n\n");
-
-			// Delete customer rental records
-			char deleteRentalQuery[MAX_STRING_SIZE];
-			sprintf(deleteRentalQuery, "DELETE FROM rental WHERE customer_id = %d;", customerIdToCheck);
-
-			if (!SendQueryToDatabase(databaseObject, deleteRentalQuery))
-			{
-				printf("Rental records deletion failed!\n");
-				return false;
-			}
-			printf("Rental records deletion successful!\n");
-
-			// Delete customer payment records
-			char deletePaymentQuery[MAX_STRING_SIZE];
-			sprintf(deletePaymentQuery, "DELETE FROM payment WHERE customer_id = %d;", customerIdToCheck);
-
-			if (!SendQueryToDatabase(databaseObject, deletePaymentQuery))
-			{
-				printf("Payment records deletion failed!\n");
-				return false;
-			}
-			printf("Payment records deletion successful!\n");
-
-			// Delete customer payment records
-			char deleteCustomerQuery[MAX_STRING_SIZE];
-			sprintf(deleteCustomerQuery, "DELETE FROM customer WHERE customer_id = %d;", customerIdToCheck);
-
-			if (!SendQueryToDatabase(databaseObject, deleteCustomerQuery))
-			{
-				printf("Customer records deletion failed!\n");
-				return false;
-			}
-			printf("Customer records deletion successful!\n");
-
-			// Delete customer payment records
-			char deleteAddressQuery[MAX_STRING_SIZE];
-			sprintf(deleteAddressQuery, "DELETE FROM address WHERE address_id = (SELECT address_id FROM customer WHERE customer_id = %d);", customerIdToCheck);
-
-			if (!SendQueryToDatabase(databaseObject, deleteAddressQuery))
-			{
-				printf("Customer address records deletion failed!\n");
-				return false;
-			}
-			printf("Customer address records deletion successful!\n");
-
-			printf("Deletion process concluded.\n");
-
-			return true;
-		}
-		// Otherwise, cancel the deletion
-		else
-		{
-			printf("This customer has an outstanding rental! Information below:\n\n");
-
-			MYSQL_ROW outstandingRentalData;
-			while ((outstandingRentalData = mysql_fetch_row(checkOutstandingRentals)) != NULL)
-			{
-				printf("OUTSTANDING RENTAL: MOVIE info:\n\tID: %s\n\ttitle: %s\n\tRental Date: %s\n\tReturn date: %s \n\n", outstandingRentalData[0], outstandingRentalData[3], outstandingRentalData[1], outstandingRentalData[2]);
-			}
-			mysql_free_result(checkOutstandingRentals);
-
-			printf("Unable to delete customer due to outstanding rental.\nCancelling deletion process...\n\n");
-
+			printf("OrderProduct records deletion failed!\n");
 			return false;
 		}
+		printf("OrderProduct records deletion successful!\n");
 
-		*/
+		// Delete OnlineOrder records
+		char deleteOnlineOrderQuery[MAX_STRING_SIZE];
+		sprintf(deleteOnlineOrderQuery, "DELETE FROM OnlineOrder WHERE CustomerId = %d;", customerIdToCheck);
+
+		if (!SendQueryToDatabase(databaseObject, deleteOnlineOrderQuery))
+		{
+			printf("OnlineOrder records deletion failed!\n");
+			return false;
+		}
+		printf("OnlineOrder records deletion successful!\n");
+
+		// Saves address count result
+		char addressResult[MAX_STRING_SIZE] = "";
+
+		// Saves address id result from sql
+		char addressIdString[MAX_STRING_SIZE] = "";
+
+		// Saves address Id integer
+		int addressIdInteger = 0;
+
+		// Get Address Id for customer in case we need to delete the address if it's not shared between customers
+		if (!CheckAddressQuery(databaseObject, customerIdToCheck))
+		{
+			// The query was NOT valid!
+			printf("Failed to find address in the database!\n");
+			return false;
+		}
+		// The query was valid
+		else
+		{
+			// Store the result from the query
+			MYSQL_RES* addressIdResult = mysql_store_result(databaseObject);
+
+			// If the result is null, there was no result
+			if (addressIdResult == NULL)
+			{
+				// Print the SQL error
+				printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+				return false;
+			}
+
+			// If the result has NO rows, the address didnt exist
+			if (!CheckRowResult(addressIdResult))
+			{
+				printf("Address for customer ID %d does not exist.\n", customerIdToCheck);
+				return false;
+			}
+			// The result has at LEAST ONE row, the address DOES exist!
+			else
+			{
+				MYSQL_ROW addressRow; // Get the rows using MYSQL_ROW for printing
+				// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+				while ((addressRow = mysql_fetch_row(addressIdResult)) != NULL)
+				{
+					printf("Address ID: Records found: Address ID: %s\n\n", addressRow[0]);
+					strcpy(addressIdString, addressRow[0]);
+					printf("addressIdString = %s\n", addressIdString);
+					// Convert address id string to integer
+					addressIdInteger = atoi(addressIdString);
+					printf("address id int = %d\n", addressIdInteger);
+				}
+			}
+			// Free the result for the address so memory isnt still consumed by it
+			mysql_free_result(addressIdResult);
+		}
+
+
+		// Check Customer Id
+		if (!CheckAddressSharedQuery(databaseObject, customerIdToCheck))
+		{
+			// The query was NOT valid!
+			printf("Failed to find customer in the database!\n");
+			return false;
+		}
+		// The query was valid
+		else
+		{
+			// Store the result from the query
+			MYSQL_RES* addressCountResult = mysql_store_result(databaseObject);
+
+			// If the result is null, there was no result
+			if (addressCountResult == NULL)
+			{
+				// Print the SQL error
+				printf("SQL Query Execution problem, ERROR: %s", mysql_error(databaseObject));
+				return false;
+			}
+
+			// If the result has NO rows, the customer didnt exist
+			if (!CheckRowResult(addressCountResult))
+			{
+				printf("There's no rows, so there's no count.\n");
+				return false;
+			}
+			// The result has at LEAST ONE row, the customer DOES exist! which means i can delete them
+			else
+			{
+				MYSQL_ROW addressCountRow; // Get the rows using MYSQL_ROW for printing
+				// Iterate over the row data until it is reading null, and print each entry (probably only 1)
+				while ((addressCountRow = mysql_fetch_row(addressCountResult)) != NULL)
+				{
+					printf("Records found: address count: %s\n\n", addressCountRow[0]);
+					strcpy(addressResult, addressCountRow[0]);
+					printf("addressresult = %s\n", addressResult);
+
+
+					// If the result is equal to 0, then there's only one address, so you can delete the address since, it's not shared.
+					if ((strcmp(addressResult, "1")) == 0)
+					{
+						// Delete customer records
+						char deleteCustomerQuery[MAX_STRING_SIZE];
+						sprintf(deleteCustomerQuery, "DELETE FROM customer WHERE customerid = %d;", customerIdToCheck);
+
+						if (!SendQueryToDatabase(databaseObject, deleteCustomerQuery))
+						{
+							printf("Customer records deletion failed!\n");
+							return false;
+						}
+						printf("Customer records deletion successful!\n");
+
+
+						// Delete customer address
+						char deleteAddressQuery[MAX_STRING_SIZE];
+						sprintf(deleteAddressQuery, "DELETE FROM address WHERE AddressId = %d;", addressIdInteger);
+
+						if (!SendQueryToDatabase(databaseObject, deleteAddressQuery))
+						{
+							printf("Customer address records deletion failed!\n");
+							return false;
+						}
+						printf("Customer address records deletion successful!\n");
+
+					}
+					else
+					{
+						printf("Customer's address is shared between multiple addresses! Canceled address deletion process...\n");
+						
+						// Delete customer records
+						char deleteCustomerQuery[MAX_STRING_SIZE];
+						sprintf(deleteCustomerQuery, "DELETE FROM customer WHERE customerid = %d;", customerIdToCheck);
+
+						if (!SendQueryToDatabase(databaseObject, deleteCustomerQuery))
+						{
+							printf("Customer records deletion failed!\n");
+							return false;
+						}
+						printf("Customer records deletion successful!\n");
+
+
+					}
+
+				}
+			}
+			// Free the result for the customer so memory isnt still consumed by it
+			mysql_free_result(addressCountResult);
+		}
+
+		// End of deletion process
+		printf("Deletion process concluded.\n");
+
+		return true;
 	}
 	else
 	{
@@ -2180,7 +2304,7 @@ void deleteOrderImplication(void)
 	printf("\t1) OnlineOrder's details will be permanently deleted from the database.\n");
 	printf("\t2) OrderProduct relating to this order will be permanently deleted from the database.\n");
 
-	printf("Would you like to proceed with deleting a order?\n\n");
+	printf("Would you like to proceed with deleting an order?\n\n");
 	printf("Enter 'Y' to proceed or any input to cancel.\n");
 }
 
@@ -2830,14 +2954,14 @@ int main()
 
 	// CODE STOPS HERE
 
-	printf("\nDeleting a book Record - Selected item \n");
-	if (!DeleteBookRecord(databaseObject))
+	printf("\nDeleting an order Record - Selected item \n");
+	if (!DeleteCustomerRecord(databaseObject))
 	{
 		printf("Did not delete customer!\n\n");
 	}
 	else
 	{
-		printf("Book deletion successful!!\n\n");
+		printf("Deletion successful!!\n\n");
 	}
 
 	//DatabaseLoginWithUserInput();
