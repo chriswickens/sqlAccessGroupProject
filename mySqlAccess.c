@@ -1668,44 +1668,6 @@ bool UpdateISBN(MYSQL* databaseObject, int bookId, long long isbnNumber)
 
 // Delete functions
 
-// Delete book functions
-
-// Delete book implications message
-void deleteBookImplication(void)
-{
-	printf("You have chosen to delete a book's record.\n\n");
-	printf("Doing so will have the following effects:\n");
-	printf("\t1) Book's details will be permanently deleted from the database.\n");
-	printf("\t2) AuthorBook relating to this book will be permanently deleted from the database.\n");
-	printf("\t3) OrderProduct relating to this book will be permanently deleted from the database.\n");
-	printf("\t4) OnlineOrder relating to this book will be permanently deleted from the database.\n");
-	printf("\t5) StoreInventory relating to this book will be permanently deleted from the database.\n");
-
-	printf("Would you like to proceed with deleting a book?\n\n");
-	printf("Enter 'Y' to proceed or any input to cancel.\n");
-}
-
-
-// Function to see if book exists based on ID
-bool CheckBookIdExistsQuery(MYSQL* databaseObject, int bookIdNumber)
-{
-	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
-
-	// Create the SQL query string and store it in the 'query' char array
-	sprintf(newQuery,
-		"SELECT * FROM book\n"
-		"WHERE BookId = %d;"
-		, bookIdNumber);
-
-	if (!SendQueryToDatabase(databaseObject, newQuery))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
 // Delete book record
 bool DeleteBookRecord(MYSQL* databaseObject)
 {
@@ -1915,6 +1877,41 @@ bool CheckPublisherIdExists(MYSQL* databaseObject, int publisherIdNumber)
 	return true;
 }
 
+// Delete book implications message
+void deleteBookImplication(void)
+{
+	printf("You have chosen to delete a book's record.\n\n");
+	printf("Doing so will have the following effects:\n");
+	printf("\t1) Book's details will be permanently deleted from the database.\n");
+	printf("\t2) AuthorBook relating to this book will be permanently deleted from the database.\n");
+	printf("\t3) OrderProduct relating to this book will be permanently deleted from the database.\n");
+	printf("\t4) OnlineOrder relating to this book will be permanently deleted from the database.\n");
+	printf("\t5) StoreInventory relating to this book will be permanently deleted from the database.\n");
+
+	printf("Would you like to proceed with deleting a book?\n\n");
+	printf("Enter 'Y' to proceed or any input to cancel.\n");
+}
+
+
+// Function to see if book exists based on ID
+bool CheckBookIdExistsQuery(MYSQL* databaseObject, int bookIdNumber)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery,
+		"SELECT * FROM book\n"
+		"WHERE BookId = %d;"
+		, bookIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
 
 /*
 * END OF
@@ -2557,44 +2554,7 @@ bool SearchBookTableWithId(MYSQL* databaseObject, int bookId)
 }
 
 
-
-
-
 // Delete order functions
-
-// Delete order implications message
-void deleteOrderImplication(void)
-{
-	printf("You have chosen to delete an order's record.\n\n");
-	printf("Doing so will have the following effects:\n");
-	printf("\t1) OnlineOrder's details will be permanently deleted from the database.\n");
-	printf("\t2) OrderProduct relating to this order will be permanently deleted from the database.\n");
-
-	printf("Would you like to proceed with deleting an order?\n\n");
-	printf("Enter 'Y' to proceed or any input to cancel.\n");
-}
-
-
-// Function to see if order exists based on ID
-bool CheckOrderIdExistsQuery(MYSQL* databaseObject, int orderIdNumber)
-{
-	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
-
-	// Create the SQL query string and store it in the 'query' char array
-	sprintf(newQuery,
-		"SELECT * FROM onlineorder\n"
-		"WHERE OnlineOrderId = %d; \n"
-		, orderIdNumber);
-
-	if (!SendQueryToDatabase(databaseObject, newQuery))
-	{
-		// Query was NOT successful
-		return false;
-	}
-
-	return true;
-}
-
 
 // Delete order record
 bool DeleteOrderRecord(MYSQL* databaseObject)
@@ -2704,6 +2664,40 @@ bool DeleteOrderRecord(MYSQL* databaseObject)
 	return true;
 }
 
+// Delete order implications message
+void deleteOrderImplication(void)
+{
+	printf("You have chosen to delete an order's record.\n\n");
+	printf("Doing so will have the following effects:\n");
+	printf("\t1) OnlineOrder's details will be permanently deleted from the database.\n");
+	printf("\t2) OrderProduct relating to this order will be permanently deleted from the database.\n");
+
+	printf("Would you like to proceed with deleting an order?\n\n");
+	printf("Enter 'Y' to proceed or any input to cancel.\n");
+}
+
+
+// Function to see if order exists based on ID
+bool CheckOrderIdExistsQuery(MYSQL* databaseObject, int orderIdNumber)
+{
+	char newQuery[MAX_STRING_SIZE]; // Where the query will be stored.
+
+	// Create the SQL query string and store it in the 'query' char array
+	sprintf(newQuery,
+		"SELECT * FROM onlineorder\n"
+		"WHERE OnlineOrderId = %d; \n"
+		, orderIdNumber);
+
+	if (!SendQueryToDatabase(databaseObject, newQuery))
+	{
+		// Query was NOT successful
+		return false;
+	}
+
+	return true;
+}
+
+
 // Customer support information
 void customerSupportInformation(void)
 {
@@ -2712,7 +2706,6 @@ void customerSupportInformation(void)
 	printf("Email:\tfinalProject@email.com\n");
 	printf("Phone:\t(519) 123-4567\n");
 }
-
 
 
 int main(void)
@@ -2967,8 +2960,3 @@ int main(void)
 
 	return EXIT_SUCCESS;
 }
-
-
-
-
-
